@@ -1,5 +1,6 @@
 package dev.koodaamo.foodium;
 
+import dev.koodaamo.propertygen.ItemPropertyGenerator;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
@@ -72,6 +73,12 @@ public class ExampleMod {
 
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
+        
+        // Register an item property generator
+        ItemPropertyGenerator itemGen = new ItemPropertyGenerator(MODID);
+        itemGen.registerAll();
+        itemGen.register(modEventBus);
+        
         // Register the Deferred Register to the mod event bus so items get registered
         ITEMS.register(modEventBus);
         // Register the Deferred Register to the mod event bus so tabs get registered
