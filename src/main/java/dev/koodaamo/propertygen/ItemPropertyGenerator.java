@@ -36,6 +36,7 @@ public class ItemPropertyGenerator implements IPropertyGenerator {
 		this.registeredItems = new HashMap<>();
 	}
 
+	@Override
 	public void register(IEventBus modEventBus) {
 		itemRegister.register(modEventBus);
 	}
