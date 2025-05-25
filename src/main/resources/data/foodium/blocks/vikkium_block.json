@@ -1,0 +1,6 @@
+{
+    "strength": 0.5,
+	"emission": 5,
+	"friction": 0.989,
+	"generate_item": true
+}
