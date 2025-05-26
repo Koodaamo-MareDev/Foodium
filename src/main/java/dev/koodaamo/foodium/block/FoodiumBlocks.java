@@ -17,7 +17,7 @@ public class FoodiumBlocks {
     public static final RegistryObject<Block> MICROWAVE_BLOCK = BLOCKS.register("microwave",
         () -> new MicrowaveBlock(BlockBehaviour.Properties.of()
             .setId(BLOCKS.key("microwave"))
-            .mapColor(MapColor.STONE).strength(0.5f)
+            .mapColor(MapColor.STONE).strength(0.5f).dynamicShape()
         )
     );
     
