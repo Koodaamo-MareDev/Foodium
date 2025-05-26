@@ -1,5 +1,6 @@
 package dev.koodaamo.foodium;
 
+import dev.koodaamo.foodium.block.FoodiumBlocks;
 import dev.koodaamo.propertygen.BlockPropertyGenerator;
 import dev.koodaamo.propertygen.ItemPropertyGenerator;
 import net.minecraft.core.registries.Registries;
@@ -79,6 +80,8 @@ public class FoodiumMod {
         
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
+        
+        FoodiumBlocks.register(modEventBus);
         
         // Register an item property generator
         ItemPropertyGenerator itemGen = new ItemPropertyGenerator(MODID);
