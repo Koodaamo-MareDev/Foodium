@@ -20,6 +20,14 @@ public class FoodiumBlocks {
             .mapColor(MapColor.STONE).strength(0.5f).dynamicShape()
         )
     );
+
+    // Creates a new Block with the id "foodium:example_block", combining the namespace and path
+    public static final RegistryObject<Block> EXAMPLE_BLOCK = BLOCKS.register("example_block",
+        () -> new Block(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("example_block"))
+            .mapColor(MapColor.STONE).strength(0.5f)
+        )
+    );
     
     public static void register(IEventBus modEventBus) {
 		BLOCKS.register(modEventBus);
