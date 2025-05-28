@@ -1,7 +1,8 @@
-package dev.koodaamo.foodium.gui;
+package dev.koodaamo.foodium.registry;
 
 import static dev.koodaamo.foodium.FoodiumMod.MODID;
 
+import dev.koodaamo.foodium.gui.MicrowaveMenu;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;

@@ -1,8 +1,7 @@
-package dev.koodaamo.foodium.item;
+package dev.koodaamo.foodium.registry;
 
 import static dev.koodaamo.foodium.FoodiumMod.MODID;
 
-import dev.koodaamo.foodium.block.FoodiumBlocks;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;

@@ -1,9 +1,9 @@
 package dev.koodaamo.foodium;
 
-import dev.koodaamo.foodium.block.FoodiumBlocks;
-import dev.koodaamo.foodium.gui.FoodiumMenus;
-import dev.koodaamo.foodium.gui.FoodiumScreens;
-import dev.koodaamo.foodium.item.FoodiumItems;
+import dev.koodaamo.foodium.registry.FoodiumBlocks;
+import dev.koodaamo.foodium.registry.FoodiumItems;
+import dev.koodaamo.foodium.registry.FoodiumMenus;
+import dev.koodaamo.foodium.registry.FoodiumScreens;
 import dev.koodaamo.propertygen.BlockPropertyGenerator;
 import dev.koodaamo.propertygen.ItemPropertyGenerator;
 import net.minecraft.core.registries.Registries;

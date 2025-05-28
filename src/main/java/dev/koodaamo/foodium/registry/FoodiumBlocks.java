@@ -1,7 +1,8 @@
-package dev.koodaamo.foodium.block;
+package dev.koodaamo.foodium.registry;
 
 import static dev.koodaamo.foodium.FoodiumMod.MODID;
 
+import dev.koodaamo.foodium.block.MicrowaveBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;

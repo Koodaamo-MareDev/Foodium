@@ -1,5 +1,6 @@
-package dev.koodaamo.foodium.gui;
+package dev.koodaamo.foodium.registry;
 
+import dev.koodaamo.foodium.gui.MicrowaveScreen;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
