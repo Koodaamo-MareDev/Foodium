@@ -1,5 +1,6 @@
 package dev.koodaamo.foodium;
 
+import dev.koodaamo.foodium.network.FoodiumPacketHandler;
 import dev.koodaamo.foodium.registry.FoodiumBlockEntities;
 import dev.koodaamo.foodium.registry.FoodiumBlocks;
 import dev.koodaamo.foodium.registry.FoodiumItems;
@@ -78,6 +79,9 @@ public class FoodiumMod {
 
 	private void commonSetup(final FMLCommonSetupEvent event) {
 		// Some common setup code
+		event.enqueueWork(() -> {
+			FoodiumPacketHandler.register();
+		});
 	}
 
 	// Add the items to the building blocks tab
