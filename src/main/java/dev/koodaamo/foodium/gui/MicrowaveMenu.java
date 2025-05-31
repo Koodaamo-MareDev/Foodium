@@ -17,9 +17,18 @@ public class MicrowaveMenu extends AbstractContainerMenu {
 
 	private int containerSlotCount;
 	private ContainerLevelAccess access;
+	private DataSlot timeDataSlot;
 
+	public int getTime() {
+		return timeDataSlot.get();
+	}
+	
+	public void setTime(int time) {
+		timeDataSlot.set(time);
+	}
+	
 	public MicrowaveMenu(int containerId, Inventory inventory) {
-		this(containerId, inventory, new ItemStackHandler(1), ContainerLevelAccess.NULL, DataSlot.standalone());
+		this(containerId, inventory, new ItemStackHandler(1), ContainerLevelAccess.NULL, DataSlot.standalone()); // Use access to get the block entity
 	}
 
 	public MicrowaveMenu(int containerId, Inventory inventory, IItemHandler handler, ContainerLevelAccess access, DataSlot timeDataSlot) {
@@ -28,6 +37,7 @@ public class MicrowaveMenu extends AbstractContainerMenu {
 		this.containerSlotCount = this.slots.size();
 		this.addStandardInventorySlots(inventory, 8, 84);
 		this.addDataSlot(timeDataSlot);
+		this.timeDataSlot = timeDataSlot;
 		this.access = access;
 	}
 
@@ -62,7 +72,7 @@ public class MicrowaveMenu extends AbstractContainerMenu {
 			// Else if the quick move was performed on the player inventory or hotbar slot
 			else if (quickMovedSlotIndex >= containerSlotCount && quickMovedSlotIndex < this.slots.size()) {
 				// Try to move the inventory/hotbar slot into the data inventory input slots
-				if (!this.moveItemStackTo(rawStack, 0, 1, false)) {
+				if (!this.moveItemStackTo(rawStack, 0, containerSlotCount, false)) {
 					// If cannot move and in player inventory slot, try to move to hotbar
 					if (quickMovedSlotIndex < containerSlotCount + 27) {
 						if (!this.moveItemStackTo(rawStack, containerSlotCount + 27, this.slots.size(), false)) {

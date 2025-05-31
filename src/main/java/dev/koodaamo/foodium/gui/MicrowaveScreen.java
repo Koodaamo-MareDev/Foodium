@@ -12,8 +12,6 @@ import net.minecraft.world.entity.player.Inventory;
 public class MicrowaveScreen extends AbstractContainerScreen<MicrowaveMenu> {
 	private static final ResourceLocation BACKGROUND_LOCATION = ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "textures/gui/container/microwaving.png");
 
-	private int time = 0;
-
 	public MicrowaveScreen(MicrowaveMenu menu, Inventory playerInventory, Component title) {
 		super(menu, playerInventory, title);
 	}
@@ -27,9 +25,11 @@ public class MicrowaveScreen extends AbstractContainerScreen<MicrowaveMenu> {
 	}
 
 	private void onStartPressed(Button b) {
-		time += 30;
-		time %= 3600;
-		this.menu.setData(0, time);
+		// Modify the cached time
+		int time = (this.menu.getTime() + 30) % 3600;
+		
+		// Update the backend and inform the server
+		this.menu.setTime(time);
 	}
 
 	@Override
@@ -40,6 +40,7 @@ public class MicrowaveScreen extends AbstractContainerScreen<MicrowaveMenu> {
 	}
 	
 	private String getTimeStr() {
+		int time = this.menu.getTime();
 		String min = (time / 60 < 10 ? "0" : "") + (time / 60);
 		String sec = (time % 60 < 10 ? "0" : "") + (time % 60);
 		return min + ":" + sec;
@@ -48,6 +49,8 @@ public class MicrowaveScreen extends AbstractContainerScreen<MicrowaveMenu> {
 	@Override
 	protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
 		super.renderLabels(graphics, mouseX, mouseY);
+		
+		// Draw time label
 		graphics.drawString(this.font, getTimeStr(), 107, 20, 0x4CFF00);
 	}
 
