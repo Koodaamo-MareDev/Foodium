@@ -4,13 +4,15 @@ import dev.koodaamo.foodium.registry.FoodiumBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.ticks.ContainerSingleItem.BlockContainerSingleItem;
 import net.minecraftforge.items.ItemStackHandler;
 
-public class MicrowaveBlockEntity extends BlockEntity {
+public class MicrowaveBlockEntity extends BlockEntity implements BlockContainerSingleItem {
 	private final ItemStackHandler itemHandler = new ItemStackHandler(1);
-	
+
 	private int cookTime;
 
 	public void setCookTime(int time) {
@@ -27,7 +29,7 @@ public class MicrowaveBlockEntity extends BlockEntity {
 	public MicrowaveBlockEntity(BlockPos pos, BlockState state) {
 		super(FoodiumBlockEntities.MICROWAVE_BLOCK_ENTITY_TYPE.get(), pos, state);
 	}
-	
+
 	@Override
 	public void loadAdditional(CompoundTag tag, Provider provider) {
 		super.loadAdditional(tag, provider);
@@ -46,4 +48,18 @@ public class MicrowaveBlockEntity extends BlockEntity {
 		return itemHandler;
 	}
 
+	@Override
+	public ItemStack getTheItem() {
+		return itemHandler.getStackInSlot(0);
+	}
+
+	@Override
+	public void setTheItem(ItemStack stack) {
+		itemHandler.setStackInSlot(0, stack);
+	}
+
+	@Override
+	public BlockEntity getContainerBlockEntity() {
+		return this;
+	}
 }

@@ -1,5 +1,6 @@
 package dev.koodaamo.foodium.gui;
 
+import dev.koodaamo.foodium.blockentity.MicrowaveBlockEntity;
 import dev.koodaamo.foodium.registry.FoodiumBlocks;
 import dev.koodaamo.foodium.registry.FoodiumMenus;
 import net.minecraft.world.entity.player.Inventory;
@@ -123,5 +124,15 @@ public class MicrowaveMenu extends AbstractContainerMenu {
 	@Override
 	public boolean stillValid(Player player) {
 		return AbstractContainerMenu.stillValid(this.access, player, FoodiumBlocks.MICROWAVE_BLOCK.get());
+	}
+	
+	@Override
+	public void removed(Player player) {
+		super.removed(player);
+		this.access.execute((level, pos) -> {
+			if(level.getBlockEntity(pos) instanceof MicrowaveBlockEntity be) {
+				be.setChanged();
+			}
+		});
 	}
 }

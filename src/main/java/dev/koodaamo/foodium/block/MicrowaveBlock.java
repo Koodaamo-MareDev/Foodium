@@ -13,6 +13,7 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -43,5 +44,12 @@ public class MicrowaveBlock extends Block implements EntityBlock {
 	@Override
 	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
 		return new MicrowaveBlockEntity(pos, state);
+	}
+
+	@Override
+	public void destroy(LevelAccessor accessor, BlockPos pos, BlockState state) {
+		if(accessor.getBlockEntity(pos) instanceof MicrowaveBlockEntity be) {
+			dropResources(state, accessor, pos, be);
+		}
 	}
 }
