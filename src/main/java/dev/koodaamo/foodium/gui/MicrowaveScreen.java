@@ -7,7 +7,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
@@ -28,11 +27,14 @@ public class MicrowaveScreen extends AbstractContainerScreen<MicrowaveMenu> {
 	}
 
 	private void onStartPressed(Button b) {
+		
 		// Modify the cached time
-		int time = (this.menu.getTime() + 30) % 3600;
-		FoodiumPacketHandler.clientToServer(new UpdateMicrowaveTimePacket(BlockPos.ZERO, time));
-		// Update the backend and inform the server
+		int time = (this.menu.getTime() + 600) % 72000;
+		
+		// Update the menu (this will be overridden by the server but the display should update immediately)
 		this.menu.setTime(time);
+		
+		FoodiumPacketHandler.clientToServer(new UpdateMicrowaveTimePacket());
 	}
 
 	@Override
@@ -43,7 +45,7 @@ public class MicrowaveScreen extends AbstractContainerScreen<MicrowaveMenu> {
 	}
 	
 	private String getTimeStr() {
-		int time = this.menu.getTime();
+		int time = this.menu.getTime() / 20;
 		String min = (time / 60 < 10 ? "0" : "") + (time / 60);
 		String sec = (time % 60 < 10 ? "0" : "") + (time % 60);
 		return min + ":" + sec;
