@@ -21,4 +21,20 @@ public class LazyDataSlot extends SimpleDataSlot {
 		cacheFlag = false;
 		return update;
 	}
+	
+	public static LazyDataSlot standalone() {
+		return new LazyDataSlot(null, null) {
+			int value;
+			
+			@Override
+			public int get() {
+				return value;
+			}
+			
+			@Override
+			public void set(int i) {
+				value = i;
+			}
+		};
+	}
 }
