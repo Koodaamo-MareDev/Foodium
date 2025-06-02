@@ -39,6 +39,7 @@ public class UpdateMicrowaveTimePacket implements StreamCodecHelper.SimplePacket
 
 			if (player.containerMenu instanceof MicrowaveMenu menu) {
 				menu.setTime(menu.getTime() + 600);
+				menu.invalidateTime();
 			}
 		});
 	}

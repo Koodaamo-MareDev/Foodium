@@ -1,8 +1,8 @@
 package dev.koodaamo.foodium.block;
 
 import dev.koodaamo.foodium.blockentity.MicrowaveBlockEntity;
+import dev.koodaamo.foodium.gui.LazyDataSlot;
 import dev.koodaamo.foodium.gui.MicrowaveMenu;
-import dev.koodaamo.foodium.gui.SimpleDataSlot;
 import dev.koodaamo.foodium.registry.FoodiumBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -29,7 +29,7 @@ public class MicrowaveBlock extends Block implements EntityBlock {
 	@Override
 	protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
 		MicrowaveBlockEntity microwaveBE = level.getBlockEntity(pos, FoodiumBlockEntities.MICROWAVE_BLOCK_ENTITY_TYPE.get()).get();
-		return new SimpleMenuProvider((containerId, playerInventory, player) -> new MicrowaveMenu(containerId, playerInventory, microwaveBE.getItemHandler(), ContainerLevelAccess.create(level, pos), new SimpleDataSlot(microwaveBE::setCookTime, microwaveBE::getCookTime)), Component.literal("Microwave"));
+		return new SimpleMenuProvider((containerId, playerInventory, player) -> new MicrowaveMenu(containerId, playerInventory, microwaveBE.getItemHandler(), ContainerLevelAccess.create(level, pos), new LazyDataSlot(microwaveBE::setCookTime, microwaveBE::getCookTime)), Component.literal("Microwave"));
 	}
 
 	@Override

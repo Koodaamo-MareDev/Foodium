@@ -7,7 +7,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
-import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
@@ -18,7 +17,7 @@ public class MicrowaveMenu extends AbstractContainerMenu {
 
 	private int containerSlotCount;
 	private ContainerLevelAccess access;
-	private DataSlot timeDataSlot;
+	private LazyDataSlot timeDataSlot;
 
 	public int getTime() {
 		return timeDataSlot.get();
@@ -28,11 +27,15 @@ public class MicrowaveMenu extends AbstractContainerMenu {
 		timeDataSlot.set(time);
 	}
 	
+	public void invalidateTime() {
+		timeDataSlot.invalidate();
+	}
+	
 	public MicrowaveMenu(int containerId, Inventory inventory) {
-		this(containerId, inventory, new ItemStackHandler(1), ContainerLevelAccess.NULL, DataSlot.standalone()); // Use access to get the block entity
+		this(containerId, inventory, new ItemStackHandler(1), ContainerLevelAccess.NULL, LazyDataSlot.standalone()); // Use access to get the block entity
 	}
 
-	public MicrowaveMenu(int containerId, Inventory inventory, IItemHandler handler, ContainerLevelAccess access, DataSlot timeDataSlot) {
+	public MicrowaveMenu(int containerId, Inventory inventory, IItemHandler handler, ContainerLevelAccess access, LazyDataSlot timeDataSlot) {
 		super(FoodiumMenus.MICROWAVE.get(), containerId);
 		this.addSlot(new SlotItemHandler(handler, 0, 48, 35));
 		this.containerSlotCount = this.slots.size();
