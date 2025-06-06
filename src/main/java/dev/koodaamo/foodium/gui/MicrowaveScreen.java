@@ -2,7 +2,7 @@ package dev.koodaamo.foodium.gui;
 
 import dev.koodaamo.foodium.FoodiumMod;
 import dev.koodaamo.foodium.network.FoodiumPacketHandler;
-import dev.koodaamo.foodium.network.UpdateMicrowaveTimePacket;
+import dev.koodaamo.foodium.network.UpdateMicrowaveStatePacket;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -13,7 +13,11 @@ import net.minecraft.world.entity.player.Inventory;
 
 public class MicrowaveScreen extends AbstractContainerScreen<MicrowaveMenu> {
 	private static final ResourceLocation BACKGROUND_LOCATION = ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "textures/gui/container/microwaving.png");
-
+	
+	public boolean cachedProcessing = false;
+	
+	private Button startButton;
+	
 	public MicrowaveScreen(MicrowaveMenu menu, Inventory playerInventory, Component title) {
 		super(menu, playerInventory, title);
 	}
@@ -23,22 +27,46 @@ public class MicrowaveScreen extends AbstractContainerScreen<MicrowaveMenu> {
 		super.init();
 		int x = (this.width - this.imageWidth) / 2;
 		int y = (this.height - this.imageHeight) / 2;
-		this.addRenderableWidget(Button.builder(Component.literal("+30s"), this::onStartPressed).bounds(x + 103, y + 37, 34, 15).build());
+		
+		// Add the +30 seconds button
+		this.addRenderableWidget(Button.builder(Component.literal("+30s"), this::onAddTimePressed).bounds(x + 103, y + 36, 34, 15).build());
+		
+		// Add start/stop button
+		this.addRenderableWidget(startButton = Button.builder(Component.literal(menu.isProcessing() ? "Stop" : "Start"), this::onStartPressed).bounds(x + 103, y + 55, 34, 15).build());
 	}
 
-	private void onStartPressed(Button b) {
-		
-		// Modify the cached time
-		int time = (this.menu.getTime() + 600) % 72000;
-		
+	private void onAddTimePressed(Button b) {
 		// Update the menu (this will be overridden by the server but the display should update immediately)
-		this.menu.setTime(time);
+		this.menu.setTime((this.menu.getTime() + 600) % 72000);
 		
-		FoodiumPacketHandler.clientToServer(new UpdateMicrowaveTimePacket());
+		// Send the update packet to the server
+		FoodiumPacketHandler.clientToServer(new UpdateMicrowaveStatePacket(UpdateMicrowaveStatePacket.ADD_TIME));
 	}
+	
+	private void onStartPressed(Button b) {
+		// Toggle the processing state
+		boolean newState = !this.menu.isProcessing();
 
+		// Apply the state display
+		this.menu.setProcessing(newState);
+		
+		// Send toggle packet to the server
+		FoodiumPacketHandler.clientToServer(new UpdateMicrowaveStatePacket(UpdateMicrowaveStatePacket.TOGGLE_PROCESSING));
+	}
+	
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		
+		boolean newState = menu.isProcessing();
+		
+		// Check for status changes
+		if(cachedProcessing != newState) {
+			// Update the start/stop button message
+			startButton.setMessage(Component.literal(newState ? "Stop" : "Start"));
+		}
+		
+		cachedProcessing = newState;
+		
 		this.renderBackground(graphics, mouseX, mouseY, partialTick);
 		super.render(graphics, mouseX, mouseY, partialTick);
 		this.renderTooltip(graphics, mouseX, mouseY);

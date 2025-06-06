@@ -3,9 +3,11 @@ package dev.koodaamo.foodium.gui;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import dev.koodaamo.sampoint.SampoInt;
+
 public class LazyDataSlot extends SimpleDataSlot {
 
-	boolean cacheFlag = false;
+	boolean cacheFlag = true;
 
 	public LazyDataSlot(Consumer<Integer> setFunc, Supplier<Integer> getFunc) {
 		super(setFunc, getFunc);
@@ -36,5 +38,9 @@ public class LazyDataSlot extends SimpleDataSlot {
 				value = i;
 			}
 		};
+	}
+	
+	public static LazyDataSlot shared(SampoInt data) {
+		return new LazyDataSlot(data::set, data::get);
 	}
 }
