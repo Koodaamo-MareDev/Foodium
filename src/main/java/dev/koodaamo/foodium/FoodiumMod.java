@@ -3,6 +3,8 @@ package dev.koodaamo.foodium;
 import dev.koodaamo.foodium.network.FoodiumPacketHandler;
 import dev.koodaamo.foodium.registry.FoodiumBlockEntities;
 import dev.koodaamo.foodium.registry.FoodiumBlocks;
+import dev.koodaamo.foodium.registry.FoodiumEntities;
+import dev.koodaamo.foodium.registry.FoodiumEntityRenderers;
 import dev.koodaamo.foodium.registry.FoodiumItems;
 import dev.koodaamo.foodium.registry.FoodiumMenus;
 import dev.koodaamo.foodium.registry.FoodiumScreens;
@@ -45,7 +47,6 @@ public class FoodiumMod {
 
 		// Register the commonSetup method for modloading
 		modEventBus.addListener(this::commonSetup);
-
 		// Register a block property generator
 		BlockPropertyGenerator blockGen = new BlockPropertyGenerator(MODID);
 		blockGen.registerAll();
@@ -68,7 +69,10 @@ public class FoodiumMod {
 		CREATIVE_MODE_TABS.register(modEventBus);
 
 		FoodiumMenus.register(modEventBus);
-
+		
+		// Register mod entities
+		FoodiumEntities.register(modEventBus);
+		
 		// Register ourselves for server and other game events we are interested in
 		MinecraftForge.EVENT_BUS.register(this);
 
@@ -96,6 +100,7 @@ public class FoodiumMod {
 		@SubscribeEvent
 		public static void onClientSetup(FMLClientSetupEvent event) {
 			FoodiumScreens.register(event);
+			FoodiumEntityRenderers.register();
 		}
 	}
 
