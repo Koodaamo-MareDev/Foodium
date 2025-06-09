@@ -15,7 +15,7 @@ public class FoodiumPacketHandler {
 		SimpleFlow<RegistryFriendlyByteBuf, Object> bidirectional = INSTANCE.play().bidirectional();
 
 		// This is the correct practice - use this unless you truly find a reason not to
-		StreamCodecHelper.register(UpdateMicrowaveTimePacket.class, UpdateMicrowaveTimePacket::new, bidirectional);
+		StreamCodecHelper.register(UpdateMicrowaveStatePacket.class, UpdateMicrowaveStatePacket::new, bidirectional);
 
 		// Uncomment the following line only if you want to play with fire.
 		// StreamCodecHelper.register(UpdateMicrowaveTimePacket.class, bidirectional);

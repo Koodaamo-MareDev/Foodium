@@ -1,6 +1,7 @@
 package dev.koodaamo.foodium.block;
 
 import dev.koodaamo.foodium.blockentity.MicrowaveBlockEntity;
+import dev.koodaamo.foodium.gui.LazyDataSlot;
 import dev.koodaamo.foodium.gui.MicrowaveMenu;
 import dev.koodaamo.foodium.gui.SimpleDataSlot;
 import dev.koodaamo.foodium.registry.FoodiumBlockEntities;
@@ -17,6 +18,8 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 
@@ -28,8 +31,15 @@ public class MicrowaveBlock extends Block implements EntityBlock {
 	
 	@Override
 	protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
-		MicrowaveBlockEntity microwaveBE = level.getBlockEntity(pos, FoodiumBlockEntities.MICROWAVE_BLOCK_ENTITY_TYPE.get()).get();
-		return new SimpleMenuProvider((containerId, playerInventory, player) -> new MicrowaveMenu(containerId, playerInventory, microwaveBE.getItemHandler(), ContainerLevelAccess.create(level, pos), new SimpleDataSlot(microwaveBE::setCookTime, microwaveBE::getCookTime)), Component.literal("Microwave"));
+		return new SimpleMenuProvider((containerId, playerInventory, player) -> {
+			if(level.getBlockEntity(pos) instanceof MicrowaveBlockEntity microwaveBE) {
+				ContainerLevelAccess access = ContainerLevelAccess.create(level, pos);
+				LazyDataSlot cookTimeSlot = LazyDataSlot.shared(microwaveBE.cookTime);
+				SimpleDataSlot processingSlot = SimpleDataSlot.shared(microwaveBE.processing);
+				return new MicrowaveMenu(containerId, playerInventory, microwaveBE.getItemHandler(), access, cookTimeSlot, processingSlot, microwaveBE.totalCookTime);
+			}
+			return null;
+		}, Component.literal("Microwave"));
 	}
 
 	@Override
@@ -44,6 +54,11 @@ public class MicrowaveBlock extends Block implements EntityBlock {
 	@Override
 	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
 		return new MicrowaveBlockEntity(pos, state);
+	}
+	
+	@Override
+	public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+		return type == FoodiumBlockEntities.MICROWAVE_BLOCK_ENTITY_TYPE.get() ? MicrowaveBlockEntity::tick : null;
 	}
 
 	@Override

@@ -3,6 +3,7 @@ package dev.koodaamo.foodium.gui;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import dev.koodaamo.sampoint.SampoInt;
 import net.minecraft.world.inventory.DataSlot;
 
 public class SimpleDataSlot extends DataSlot {
@@ -25,4 +26,7 @@ public class SimpleDataSlot extends DataSlot {
 		setFunc.accept(i);
 	}
 
+	public static SimpleDataSlot shared(SampoInt data) {
+		return new SimpleDataSlot(data::set, data::get);
+	}
 }

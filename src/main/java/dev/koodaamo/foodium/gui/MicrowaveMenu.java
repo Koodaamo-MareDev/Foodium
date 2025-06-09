@@ -3,6 +3,7 @@ package dev.koodaamo.foodium.gui;
 import dev.koodaamo.foodium.blockentity.MicrowaveBlockEntity;
 import dev.koodaamo.foodium.registry.FoodiumBlocks;
 import dev.koodaamo.foodium.registry.FoodiumMenus;
+import dev.koodaamo.sampoint.SampoInt;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -18,30 +19,62 @@ public class MicrowaveMenu extends AbstractContainerMenu {
 
 	private int containerSlotCount;
 	private ContainerLevelAccess access;
-	private DataSlot timeDataSlot;
+	private LazyDataSlot timeDataSlot;
+	private DataSlot processingDataSlot;
+	private SampoInt totalCookTime;
 
-	public int getTime() {
-		return timeDataSlot.get();
-	}
-	
-	public void setTime(int time) {
-		timeDataSlot.set(time);
-	}
-	
 	public MicrowaveMenu(int containerId, Inventory inventory) {
-		this(containerId, inventory, new ItemStackHandler(1), ContainerLevelAccess.NULL, DataSlot.standalone()); // Use access to get the block entity
+		this(containerId, inventory, new ItemStackHandler(1), ContainerLevelAccess.NULL, LazyDataSlot.standalone(), DataSlot.standalone(), new SampoInt()); // Use access to get the block entity
 	}
 
-	public MicrowaveMenu(int containerId, Inventory inventory, IItemHandler handler, ContainerLevelAccess access, DataSlot timeDataSlot) {
+	public MicrowaveMenu(int containerId, Inventory inventory, IItemHandler handler, ContainerLevelAccess access, LazyDataSlot timeDataSlot, DataSlot processingDataSlot, SampoInt totalCookTime) {
 		super(FoodiumMenus.MICROWAVE.get(), containerId);
 		this.addSlot(new SlotItemHandler(handler, 0, 48, 35));
 		this.containerSlotCount = this.slots.size();
 		this.addStandardInventorySlots(inventory, 8, 84);
 		this.addDataSlot(timeDataSlot);
+		this.addDataSlot(processingDataSlot);
 		this.timeDataSlot = timeDataSlot;
+		this.processingDataSlot = processingDataSlot;
+		this.totalCookTime = totalCookTime;
 		this.access = access;
 	}
 
+	public int getTime() {
+		return timeDataSlot.get();
+	}
+
+	public void setTime(int time) {
+		timeDataSlot.set(time);
+	}
+
+	// This is for determining the outcome and has to be updated using the stop or +30s buttons.
+	public void setTotalTime(int time) {
+		totalCookTime.set(time);
+	}
+	
+	public int getTotalTime() {
+		return totalCookTime.get();
+	}
+
+	public void invalidateTime() {
+		timeDataSlot.invalidate();
+	}
+
+	public void setProcessing(boolean processing) {
+		processingDataSlot.set(processing ? 1 : 0);
+	}
+
+	public boolean isProcessing() {
+		return processingDataSlot.get() != 0;
+	}
+
+	@Override
+	public boolean clickMenuButton(Player p_38875_, int p_38876_) {
+		// TODO Auto-generated method stub
+		return super.clickMenuButton(p_38875_, p_38876_);
+	}
+	
 	@Override
 	public ItemStack quickMoveStack(Player player, int quickMovedSlotIndex) {
 		// The quick moved slot stack
@@ -57,9 +90,7 @@ public class MicrowaveMenu extends AbstractContainerMenu {
 			quickMovedStack = rawStack.copy();
 
 			/*
-			 * The following quick move logic can be simplified to if in data inventory, try
-			 * to move to player inventory/hotbar and vice versa for containers that cannot
-			 * transform data (e.g. chests).
+			 * The following quick move logic can be simplified to if in data inventory, try to move to player inventory/hotbar and vice versa for containers that cannot transform data (e.g. chests).
 			 */
 
 			// If the quick move was performed on the data inventory result slot
@@ -105,8 +136,7 @@ public class MicrowaveMenu extends AbstractContainerMenu {
 			}
 
 			/*
-			 * The following if statement and Slot#onTake call can be removed if the menu
-			 * does not represent a container that can transform stacks (e.g. chests).
+			 * The following if statement and Slot#onTake call can be removed if the menu does not represent a container that can transform stacks (e.g. chests).
 			 */
 			if (rawStack.getCount() == quickMovedStack.getCount()) {
 				// If the raw stack was not able to be moved to another slot, no longer quick
@@ -125,12 +155,12 @@ public class MicrowaveMenu extends AbstractContainerMenu {
 	public boolean stillValid(Player player) {
 		return AbstractContainerMenu.stillValid(this.access, player, FoodiumBlocks.MICROWAVE_BLOCK.get());
 	}
-	
+
 	@Override
 	public void removed(Player player) {
 		super.removed(player);
 		this.access.execute((level, pos) -> {
-			if(level.getBlockEntity(pos) instanceof MicrowaveBlockEntity be) {
+			if (level.getBlockEntity(pos) instanceof MicrowaveBlockEntity be) {
 				be.setChanged();
 			}
 		});
