@@ -9,7 +9,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -29,11 +28,6 @@ public class FoodiumEntities {
 			.fireImmune()
 			.updateInterval(1));
 
-	// Register entity types here
-	// public static final EntityType<FireGolemEntity> FIRE_GOLEM =
-	// register("fire_golem", basic(FireGolemEntity::new, SpawnGroup.CREATURE, 0.7f,
-	// 1.9f), FireGolemEntity.createFireGolemAttributes());
-
 	// This registers the default attributes for the living entities
 	public static void register(IEventBus modEventBus) {
 		ENTITY_TYPES.register(modEventBus);
@@ -45,11 +39,8 @@ public class FoodiumEntities {
 		return ENTITY_TYPES.register(name, () -> entityTypeBuilder.build(key));
 	}
 
-	// On the mod event bus
-	
 	@SubscribeEvent
 	public static void createEntityAttributes(EntityAttributeCreationEvent event) {
-		System.out.println(">>>>>>>>>>>>>>>> Epic penis moment <<<<<<<<<<<<<<<<");
 		event.put(CUSTOM_BAT.get(), Mob.createLivingAttributes().add(Attributes.MAX_HEALTH, 4).add(Attributes.FOLLOW_RANGE, 35).add(Attributes.SCALE, 1).build());
 	}
 

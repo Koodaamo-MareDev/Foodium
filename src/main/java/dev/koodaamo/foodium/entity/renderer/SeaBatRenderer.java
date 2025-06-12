@@ -7,7 +7,6 @@ public class SeaBatRenderer extends BatRenderer {
 
 	public SeaBatRenderer(Context context) {
 		super(context);
-		
 	}
 
 }
