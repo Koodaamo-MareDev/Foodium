@@ -25,7 +25,6 @@ public class FoodiumEntities {
 
 	public static final RegistryObject<EntityType<SeaBat>> CUSTOM_BAT = register("sea_bat", EntityType.Builder.<SeaBat>of(SeaBat::new, MobCategory.WATER_CREATURE) // or CREATURE / MONSTER depending on your mob
 			.sized(1.0F, 1.0F) // width, height
-			.fireImmune()
 			.updateInterval(1));
 
 	// This registers the default attributes for the living entities
