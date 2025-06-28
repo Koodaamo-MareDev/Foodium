@@ -1,0 +1,22 @@
+{
+	"entity.seabat.death": {
+		"subtitle": "Seabat dies",
+		"sounds": [
+			"foodium:entity/seabat/death"
+		]
+	},
+	"entity.seabat.hurt": {
+		"subtitle": "Seabat takes damage",
+		"sounds": [
+			"foodium:entity/seabat/hurt1",
+			"foodium:entity/seabat/hurt2"
+		]
+	},
+	"entity.seabat.ambient": {
+		"subtitle": "Seabat creaks",
+		"sounds": [
+			"foodium:entity/seabat/hurt1",
+			"foodium:entity/seabat/hurt2"
+		]
+	}
+}
