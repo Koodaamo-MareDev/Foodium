@@ -40,7 +40,7 @@ public class FoodiumEntities {
 
 	@SubscribeEvent
 	public static void createEntityAttributes(EntityAttributeCreationEvent event) {
-		event.put(CUSTOM_BAT.get(), Mob.createLivingAttributes().add(Attributes.MAX_HEALTH, 4).add(Attributes.FOLLOW_RANGE, 35).add(Attributes.SCALE, 1).build());
+		event.put(CUSTOM_BAT.get(), Mob.createLivingAttributes().add(Attributes.MAX_HEALTH, 4).add(Attributes.FOLLOW_RANGE, 35).add(Attributes.SCALE, 1).add(Attributes.ATTACK_DAMAGE, 1).build());
 	}
 
 }
