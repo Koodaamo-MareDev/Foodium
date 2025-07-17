@@ -21,8 +21,11 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.LookControl;
 import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.world.entity.ai.targeting.TargetingConditions;	
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
@@ -31,7 +34,7 @@ public class SeaBat extends FlyingMob {
 	Vec3 moveTargetPoint = Vec3.ZERO;
 
 	BlockPos anchorPoint;
-	
+
 	public static final SoundEvent SOUND_SEABAT_DEATH = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.death"));
 	public static final SoundEvent SOUND_SEABAT_HURT = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.hurt"));
 	public static final SoundEvent SOUND_SEABAT_AMBIENT = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.ambient"));
@@ -39,9 +42,9 @@ public class SeaBat extends FlyingMob {
 	public SeaBat(EntityType<? extends SeaBat> entityType, Level level) {
 		super(entityType, level);
 		this.xpReward = 5;
-        this.moveControl = new SeaBat.PhantomMoveControl(this);
-        this.lookControl = new SeaBat.PhantomLookControl(this);
-        this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(1);
+		this.moveControl = new SeaBat.PhantomMoveControl(this);
+		this.lookControl = new SeaBat.PhantomLookControl(this);
+		this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(1);
 	}
 
 	public AttackPhase attackPhase;
@@ -76,127 +79,126 @@ public class SeaBat extends FlyingMob {
 	}
 
 	class PhantomCircleAroundAnchorGoal extends SeaBat.PhantomMoveTargetGoal {
-        private float angle;
-        private float distance;
-        private float height;
-        private float clockwise;
+		private float angle;
+		private float distance;
+		private float height;
+		private float clockwise;
 
-        @Override
-        public boolean canUse() {
-            return SeaBat.this.getTarget() == null || SeaBat.this.attackPhase == SeaBat.AttackPhase.CIRCLE;
-        }
+		@Override
+		public boolean canUse() {
+			return SeaBat.this.getTarget() == null || SeaBat.this.attackPhase == SeaBat.AttackPhase.CIRCLE;
+		}
 
-        @Override
-        public void start() {
-            this.distance = 5.0F + SeaBat.this.random.nextFloat() * 10.0F;
-            this.height = -4.0F + SeaBat.this.random.nextFloat() * 9.0F;
-            this.clockwise = SeaBat.this.random.nextBoolean() ? 1.0F : -1.0F;
-            this.selectNext();
-        }
+		@Override
+		public void start() {
+			this.distance = 5.0F + SeaBat.this.random.nextFloat() * 10.0F;
+			this.height = -4.0F + SeaBat.this.random.nextFloat() * 9.0F;
+			this.clockwise = SeaBat.this.random.nextBoolean() ? 1.0F : -1.0F;
+			this.selectNext();
+		}
 
-        @Override
-        public void tick() {
-            if (SeaBat.this.random.nextInt(this.adjustedTickDelay(350)) == 0) {
-                this.height = -4.0F + SeaBat.this.random.nextFloat() * 9.0F;
-            }
+		@Override
+		public void tick() {
+			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(350)) == 0) {
+				this.height = -4.0F + SeaBat.this.random.nextFloat() * 9.0F;
+			}
 
-            if (SeaBat.this.random.nextInt(this.adjustedTickDelay(250)) == 0) {
-                this.distance++;
-                if (this.distance > 15.0F) {
-                    this.distance = 5.0F;
-                    this.clockwise = -this.clockwise;
-                }
-            }
+			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(250)) == 0) {
+				this.distance++;
+				if (this.distance > 15.0F) {
+					this.distance = 5.0F;
+					this.clockwise = -this.clockwise;
+				}
+			}
 
-            if (SeaBat.this.random.nextInt(this.adjustedTickDelay(450)) == 0) {
-                this.angle = SeaBat.this.random.nextFloat() * 2.0F * (float) Math.PI;
-                this.selectNext();
-            }
+			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(450)) == 0) {
+				this.angle = SeaBat.this.random.nextFloat() * 2.0F * (float) Math.PI;
+				this.selectNext();
+			}
 
-            if (this.touchingTarget()) {
-                this.selectNext();
-            }
+			if (this.touchingTarget()) {
+				this.selectNext();
+			}
 
-            if (SeaBat.this.moveTargetPoint.y < SeaBat.this.getY() && !SeaBat.this.level().isEmptyBlock(SeaBat.this.blockPosition().below(1))) {
-                this.height = Math.max(1.0F, this.height);
-                this.selectNext();
-            }
+			if (SeaBat.this.moveTargetPoint.y < SeaBat.this.getY() && !SeaBat.this.level().isEmptyBlock(SeaBat.this.blockPosition().below(1))) {
+				this.height = Math.max(1.0F, this.height);
+				this.selectNext();
+			}
 
-            if (SeaBat.this.moveTargetPoint.y > SeaBat.this.getY() && !SeaBat.this.level().isEmptyBlock(SeaBat.this.blockPosition().above(1))) {
-                this.height = Math.min(-1.0F, this.height);
-                this.selectNext();
-            }
-        }
+			if (SeaBat.this.moveTargetPoint.y > SeaBat.this.getY() && !SeaBat.this.level().isEmptyBlock(SeaBat.this.blockPosition().above(1))) {
+				this.height = Math.min(-1.0F, this.height);
+				this.selectNext();
+			}
+		}
 
-        private void selectNext() {
-            if (SeaBat.this.anchorPoint == null) {
-                SeaBat.this.anchorPoint = SeaBat.this.blockPosition();
-            }
+		private void selectNext() {
+			if (SeaBat.this.anchorPoint == null) {
+				SeaBat.this.anchorPoint = SeaBat.this.blockPosition();
+			}
 
-            this.angle = this.angle + this.clockwise * 15.0F * (float) (Math.PI / 180.0);
-            SeaBat.this.moveTargetPoint = Vec3.atLowerCornerOf(SeaBat.this.anchorPoint)
-                .add(this.distance * Mth.cos(this.angle), -4.0F + this.height, this.distance * Mth.sin(this.angle));
-        }
-    }
-	
+			this.angle = this.angle + this.clockwise * 15.0F * (float) (Math.PI / 180.0);
+			SeaBat.this.moveTargetPoint = Vec3.atLowerCornerOf(SeaBat.this.anchorPoint).add(this.distance * Mth.cos(this.angle), -4.0F + this.height, this.distance * Mth.sin(this.angle));
+		}
+	}
+
 	static class PhantomLookControl extends LookControl {
-        public PhantomLookControl(Mob mob) {
-            super(mob);
-        }
+		public PhantomLookControl(Mob mob) {
+			super(mob);
+		}
 
-        @Override
-        public void tick() {
-        }
-    }
-	
+		@Override
+		public void tick() {
+		}
+	}
+
 	class PhantomMoveControl extends MoveControl {
-        private float speed = 0.1F;
+		private float speed = 0.5F;
 
-        public PhantomMoveControl(final Mob p_33241_) {
-            super(p_33241_);
-        }
+		public PhantomMoveControl(final Mob p_33241_) {
+			super(p_33241_);
+		}
 
-        @Override
-        public void tick() {
-            if (SeaBat.this.horizontalCollision) {
-            	SeaBat.this.setYRot(SeaBat.this.getYRot() + 180.0F);
-                this.speed = 0.1F;
-            }
+		@Override
+		public void tick() {
+			if (SeaBat.this.horizontalCollision) {
+				SeaBat.this.setYRot(SeaBat.this.getYRot() + 180.0F);
+				this.speed = 0.5F;
+			}
 
-            double dx = SeaBat.this.moveTargetPoint.x - SeaBat.this.getX();
-            double dy = SeaBat.this.moveTargetPoint.y - SeaBat.this.getY();
-            double dz = SeaBat.this.moveTargetPoint.z - SeaBat.this.getZ();
-            double horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-            if (Math.abs(horizontalDistance) > 0.00001F) {
-                double horizontalMultiplier = 1.0 - Math.abs(dy * 0.7F) / horizontalDistance;
-                dx *= horizontalMultiplier;
-                dz *= horizontalMultiplier;
-                horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-                double distance = Math.sqrt(dx * dx + dz * dz + dy * dy);
-                float currentYawDeg = SeaBat.this.getYRot();
-                float targetYawRad = (float)Mth.atan2(dz, dx);
-                float rightYawDeg = Mth.wrapDegrees(SeaBat.this.getYRot() + 90.0F);
-                float targetYawDeg = Mth.wrapDegrees(targetYawRad * (180.0F / (float)Math.PI));
-                SeaBat.this.setYRot(Mth.approachDegrees(rightYawDeg, targetYawDeg, 4.0F) - 90.0F);
-                SeaBat.this.yBodyRot = SeaBat.this.getYRot();
-                if (Mth.degreesDifferenceAbs(currentYawDeg, SeaBat.this.getYRot()) < 3.0F) {
-                    this.speed = Mth.approach(this.speed, 1.8F, 0.005F * (1.8F / this.speed));
-                } else {
-                    this.speed = Mth.approach(this.speed, 0.2F, 0.025F);
-                }
+			double dx = SeaBat.this.moveTargetPoint.x - SeaBat.this.getX();
+			double dy = SeaBat.this.moveTargetPoint.y - SeaBat.this.getY();
+			double dz = SeaBat.this.moveTargetPoint.z - SeaBat.this.getZ();
+			double horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+			if (Math.abs(horizontalDistance) > 0.00001F) {
+				double horizontalMultiplier = 1.0 - Math.abs(dy * 0.7F) / horizontalDistance;
+				dx *= horizontalMultiplier;
+				dz *= horizontalMultiplier;
+				horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+				double distance = Math.sqrt(dx * dx + dz * dz + dy * dy);
+				float currentYawDeg = SeaBat.this.getYRot();
+				float targetYawRad = (float) Mth.atan2(dz, dx);
+				float rightYawDeg = Mth.wrapDegrees(SeaBat.this.getYRot() + 90.0F);
+				float targetYawDeg = Mth.wrapDegrees(targetYawRad * (180.0F / (float) Math.PI));
+				SeaBat.this.setYRot(Mth.approachDegrees(rightYawDeg, targetYawDeg, 15.0F) - 90.0F);
+				SeaBat.this.yBodyRot = SeaBat.this.getYRot();
+				if (Mth.degreesDifferenceAbs(currentYawDeg, SeaBat.this.getYRot()) < 3.0F) {
+					this.speed = Mth.approach(this.speed, 2.5F, 0.005F * (2.5F / this.speed));
+				} else {
+					this.speed = Mth.approach(this.speed, 1F, 0.025F);
+				}
 
-                float newPitchDeg = (float)(-(Mth.atan2(-dy, horizontalDistance) * 180.0F / (float)Math.PI));
-                SeaBat.this.setXRot(newPitchDeg);
-                float newYawDeg = SeaBat.this.getYRot() + 90.0F;
-                double speedIncreaseX = this.speed * Mth.cos(newYawDeg * (float) (Math.PI / 180.0)) * Math.abs(dx / distance);
-                double speedIncreaseZ = this.speed * Mth.sin(newYawDeg * (float) (Math.PI / 180.0)) * Math.abs(dz / distance);
-                double speedIncreaseY = this.speed * Mth.sin(newPitchDeg * (float) (Math.PI / 180.0)) * Math.abs(dy / distance);
-                Vec3 oldMovement = SeaBat.this.getDeltaMovement();
-                SeaBat.this.setDeltaMovement(oldMovement.add(new Vec3(speedIncreaseX, speedIncreaseY, speedIncreaseZ).subtract(oldMovement).scale(0.2)));
-            }
-        }
-    }
-	
+				float newPitchDeg = (float) (-(Mth.atan2(-dy, horizontalDistance) * 180.0F / (float) Math.PI));
+				SeaBat.this.setXRot(newPitchDeg);
+				float newYawDeg = SeaBat.this.getYRot() + 90.0F;
+				double speedIncreaseX = this.speed * Mth.cos(newYawDeg * (float) (Math.PI / 180.0)) * Math.abs(dx / distance);
+				double speedIncreaseZ = this.speed * Mth.sin(newYawDeg * (float) (Math.PI / 180.0)) * Math.abs(dz / distance);
+				double speedIncreaseY = this.speed * Mth.sin(newPitchDeg * (float) (Math.PI / 180.0)) * Math.abs(dy / distance);
+				Vec3 oldMovement = SeaBat.this.getDeltaMovement();
+				SeaBat.this.setDeltaMovement(oldMovement.add(new Vec3(speedIncreaseX, speedIncreaseY, speedIncreaseZ).subtract(oldMovement).scale(0.2)));
+			}
+		}
+	}
+
 	class PhantomSweepAttackGoal extends SeaBat.PhantomMoveTargetGoal {
 		@Override
 		public boolean canUse() {
@@ -236,6 +238,19 @@ public class SeaBat extends FlyingMob {
 				SeaBat.this.moveTargetPoint = new Vec3(livingentity.getX(), livingentity.getY(0.5), livingentity.getZ());
 				if (SeaBat.this.getBoundingBox().inflate(0.2F).intersects(livingentity.getBoundingBox())) {
 					SeaBat.this.doHurtTarget(getServerLevel(SeaBat.this.level()), livingentity);
+
+					if (livingentity instanceof Player player) {
+
+						Inventory inventory = player.getInventory();
+						ItemStack targetStack = new ItemStack(Items.COOKED_CHICKEN);
+						int slot = inventory.findSlotMatchingItem(targetStack);
+
+						if (slot != -1) {
+							ItemStack matchingStack = inventory.getItem(slot);
+							matchingStack.shrink(1);
+						}
+					}
+
 					SeaBat.this.attackPhase = SeaBat.AttackPhase.CIRCLE;
 					if (!SeaBat.this.isSilent()) {
 						SeaBat.this.level().levelEvent(1039, SeaBat.this.blockPosition(), 0);
@@ -248,44 +263,48 @@ public class SeaBat extends FlyingMob {
 	}
 
 	boolean canAttack(ServerLevel p_365188_, LivingEntity p_367013_, TargetingConditions p_364315_) {
-        return p_364315_.test(p_365188_, this, p_367013_);
-    }
-	
+		return p_364315_.test(p_365188_, this, p_367013_);
+	}
+
 	class PhantomAttackPlayerTargetGoal extends Goal {
-        private final TargetingConditions attackTargeting = TargetingConditions.forCombat().range(64.0);
-        private int nextScanTick = reducedTickDelay(20);
+		private final TargetingConditions attackTargeting = TargetingConditions.forCombat().range(64.0);
+		private int nextScanTick = reducedTickDelay(20);
 
-        @Override
-        public boolean canUse() {
-            if (this.nextScanTick > 0) {
-                this.nextScanTick--;
-                return false;
-            } else {
-                this.nextScanTick = reducedTickDelay(60);
-                ServerLevel serverlevel = getServerLevel(SeaBat.this.level());
-                List<Player> list = serverlevel.getNearbyPlayers(this.attackTargeting, SeaBat.this, SeaBat.this.getBoundingBox().inflate(16.0, 64.0, 16.0));
-                if (!list.isEmpty()) {
-                    list.sort(Comparator.<Entity, Double>comparing(Entity::getY).reversed());
+		@Override
+		public boolean canUse() {
+			if (this.nextScanTick > 0) {
+				this.nextScanTick--;
+				return false;
+			} else {
+				this.nextScanTick = reducedTickDelay(60);
+				ServerLevel serverlevel = getServerLevel(SeaBat.this.level());
+				// List<LivingEntity> list =
+				// serverlevel.getNearbyEntities(net.minecraft.world.entity.LivingEntity.class,
+				// this.attackTargeting, SeaBat.this, SeaBat.this.getBoundingBox().inflate(16.0,
+				// 64.0, 16.0));
+				List<Player> list = serverlevel.getNearbyPlayers(this.attackTargeting, SeaBat.this, SeaBat.this.getBoundingBox().inflate(16.0, 64.0, 16.0));
+				if (!list.isEmpty()) {
+					list.sort(Comparator.<Entity, Double>comparing(Entity::getY).reversed());
 
-                    for (Player player : list) {
-                        if (SeaBat.this.canAttack(serverlevel, player, TargetingConditions.DEFAULT)) {
-                        	SeaBat.this.setTarget(player);
-                            return true;
-                        }
-                    }
-                }
+					for (Player player : list) {
+						if (SeaBat.this.canAttack(serverlevel, player, TargetingConditions.DEFAULT)) {
+							SeaBat.this.setTarget(player);
+							return true;
+						}
+					}
+				}
 
-                return false;
-            }
-        }
+				return false;
+			}
+		}
 
-        @Override
-        public boolean canContinueToUse() {
-            LivingEntity livingentity = SeaBat.this.getTarget();
-            return livingentity != null ? SeaBat.this.canAttack(getServerLevel(SeaBat.this.level()), livingentity, TargetingConditions.DEFAULT) : false;
-        }
-    }
-	
+		@Override
+		public boolean canContinueToUse() {
+			LivingEntity livingentity = SeaBat.this.getTarget();
+			return livingentity != null ? SeaBat.this.canAttack(getServerLevel(SeaBat.this.level()), livingentity, TargetingConditions.DEFAULT) : false;
+		}
+	}
+
 	class PhantomAttackStrategyGoal extends Goal {
 		private int nextSweepTick;
 
