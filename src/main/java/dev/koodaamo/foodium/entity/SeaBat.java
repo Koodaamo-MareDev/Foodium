@@ -21,6 +21,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.Containers;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.AnimationState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.FlyingMob;
@@ -50,6 +51,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	Vec3 moveTargetPoint = Vec3.ZERO;
 
 	BlockPos anchorPoint;
+	public final AnimationState flyAnimationState = new AnimationState();
 
 	public static final int ITEMS_TO_CARRY = 4;
 	public static final int ITEMS_TO_STEAL = 1;
@@ -68,13 +70,20 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		this.lookControl = new SeaBat.PhantomLookControl(this);
 		this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(1);
 	}
-
+	
 	public AttackPhase attackPhase;
 
 	static enum AttackPhase {
 		CIRCLE, SWOOP;
 	}
 
+	// Base SeaBat tick method
+	@Override
+	public void tick() {
+		super.tick();
+		setupAnimationStates();
+	}
+	
 	@Override
 	public SoundEvent getAmbientSound() {
 		return this.random.nextInt(4) != 0 ? null : SOUND_SEABAT_AMBIENT;
@@ -550,5 +559,9 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	@Override
 	public void setContainerLootTableSeed(long p_368553_) {
 
+	}
+
+	private void setupAnimationStates() {
+		this.flyAnimationState.startIfStopped(this.tickCount);
 	}
 }

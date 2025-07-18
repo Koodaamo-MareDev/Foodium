@@ -24,4 +24,8 @@ public class SeaBatRenderer extends MobRenderer<SeaBat, SeaBatRenderState, SeaBa
 		return new SeaBatRenderState();
 	}
 
+	public void extractRenderState(SeaBat seaBat, SeaBatRenderState renderState, float p_368671_) {
+		super.extractRenderState(seaBat, renderState, p_368671_);
+		renderState.flyAnimationState.copyFrom(seaBat.flyAnimationState);
+	}
 }
