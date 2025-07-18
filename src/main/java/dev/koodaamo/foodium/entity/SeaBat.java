@@ -4,13 +4,22 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import dev.koodaamo.foodium.FoodiumMod;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.Containers;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -24,13 +33,20 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.vehicle.ContainerEntity;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.items.wrapper.InvWrapper;
 
-public class SeaBat extends FlyingMob {
+public class SeaBat extends FlyingMob implements ContainerEntity {
 	Vec3 moveTargetPoint = Vec3.ZERO;
 
 	BlockPos anchorPoint;
@@ -38,6 +54,10 @@ public class SeaBat extends FlyingMob {
 	public static final SoundEvent SOUND_SEABAT_DEATH = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.death"));
 	public static final SoundEvent SOUND_SEABAT_HURT = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.hurt"));
 	public static final SoundEvent SOUND_SEABAT_AMBIENT = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.ambient"));
+
+	private NonNullList<ItemStack> itemStacks = NonNullList.withSize(3, ItemStack.EMPTY);
+	private int timesChanged;
+	private ResourceKey<LootTable> lootTable;
 
 	public SeaBat(EntityType<? extends SeaBat> entityType, Level level) {
 		super(entityType, level);
@@ -242,12 +262,32 @@ public class SeaBat extends FlyingMob {
 					if (livingentity instanceof Player player) {
 
 						Inventory inventory = player.getInventory();
-						ItemStack targetStack = new ItemStack(Items.COOKED_CHICKEN);
-						int slot = inventory.findSlotMatchingItem(targetStack);
+						ItemStack targetStack = new ItemStack(Items.COOKED_CHICKEN); // The item we want
+						int playerSlot = inventory.findSlotMatchingItem(targetStack); // Item slot to find from player inventory
 
-						if (slot != -1) {
-							ItemStack matchingStack = inventory.getItem(slot);
-							matchingStack.shrink(1);
+						if (playerSlot != -1) { // If slot exists
+							ItemStack matchingStack = inventory.getItem(playerSlot); // Get the matching ItemStack and shrink it by 1
+
+							if (matchingStack.getCount() > 0) {
+								int seaBatSlot = findSlotMatchingItem(matchingStack); // Item slot to find from SeaBat inventory matching stolen item
+								
+								if (seaBatSlot != -1) {
+									ItemStack stolenStack = getItem(seaBatSlot); // Get the existing stack
+									stolenStack.grow(1); // Grow the existing stack
+									SeaBat.this.setItem(seaBatSlot, stolenStack);
+									matchingStack.shrink(1);
+								} else {
+									ItemStack stolenStack = matchingStack.copy();
+									stolenStack.setCount(1); // Set initial count for the new stack
+									
+									if (!hasRemainingSpaceForItem(stolenStack, getItem(seaBatSlot))) {
+										if (getFreeSlot() != -1) {
+											SeaBat.this.setItem(getFreeSlot(), stolenStack); // Set the slot for the new stack
+											matchingStack.shrink(1);
+										}
+									}
+								}
+							}
 						}
 					}
 
@@ -358,9 +398,186 @@ public class SeaBat extends FlyingMob {
 		this.goalSelector.addGoal(3, new SeaBat.PhantomCircleAroundAnchorGoal());
 		this.targetSelector.addGoal(1, new SeaBat.PhantomAttackPlayerTargetGoal());
 	}
+	
+	private LazyOptional<?> itemHandler = LazyOptional.of(() -> new InvWrapper(this));
 
 	@Override
-	public void tick() {
-		super.tick();
+	public <T> LazyOptional<T> getCapability(Capability<T> capability, @Nullable Direction facing) {
+		if (capability == ForgeCapabilities.ITEM_HANDLER && this.isAlive()) {
+			return itemHandler.cast();
+		}
+		return super.getCapability(capability, facing);
+	}
+
+	@Override
+	public void invalidateCaps() {
+		super.invalidateCaps();
+		itemHandler.invalidate();
+	}
+
+	@Override
+	public void reviveCaps() {
+		super.reviveCaps();
+		itemHandler = LazyOptional.of(() -> new InvWrapper(this));
+	}
+
+	@Override
+	public NonNullList<ItemStack> getItemStacks() {
+		return this.itemStacks;
+	}
+
+	@Override
+	public void clearItemStacks() {
+		this.itemStacks = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
+	}
+
+	@Override
+	public int getContainerSize() {
+		return this.itemStacks.size();
+	}
+
+	@Override
+	public ItemStack getItem(int slot) {
+		if (slot >= 0 && slot < this.itemStacks.size()) {
+			return this.itemStacks.get(slot);
+		} else {
+			return ItemStack.EMPTY;
+		}
+	}
+
+	@Override
+	public ItemStack removeItem(int slot, int amount) {
+		if (slot < this.itemStacks.size()) {
+			return ContainerHelper.removeItem(this.itemStacks, slot, amount);
+		}
+		return ItemStack.EMPTY;
+	}
+
+	@Override
+	public ItemStack removeItemNoUpdate(int slot) {
+		if (slot < this.itemStacks.size()) {
+			ItemStack itemstack = this.itemStacks.get(slot);
+			this.itemStacks.set(slot, ItemStack.EMPTY);
+			return itemstack;
+		} else {
+			return ItemStack.EMPTY;
+		}
+	}
+
+	@Override
+	public void setItem(int slot, ItemStack item) {
+		if (slot < this.itemStacks.size()) {
+			this.itemStacks.set(slot, item);
+		}
+	}
+
+	public int findSlotMatchingItem(ItemStack stack) {
+		for (int i = 0; i < this.itemStacks.size(); i++) {
+			if (!this.itemStacks.get(i).isEmpty() && ItemStack.isSameItemSameComponents(stack, this.itemStacks.get(i))) {
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+	private boolean hasRemainingSpaceForItem(ItemStack targetStack, ItemStack inputStack) {
+        return !targetStack.isEmpty() && ItemStack.isSameItemSameComponents(targetStack, inputStack) && targetStack.isStackable() && targetStack.getCount() < this.getMaxStackSize(targetStack);
+    }
+	
+	public int getFreeSlot() {
+        for (int i = 0; i < this.itemStacks.size(); i++) {
+            if (this.itemStacks.get(i).isEmpty()) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+	
+	@Override
+	public void setChanged() {
+		this.timesChanged++;
+	}
+
+	public int getTimesChanged() {
+		return this.timesChanged;
+	}
+
+	@Override
+	public boolean stillValid(Player player) {
+		return true;
+	}
+
+	@Override
+	public void clearContent() {
+		this.itemStacks.clear();
+	}
+
+	@Override
+	public void remove(Entity.RemovalReason removalReason) {
+		if (!this.level().isClientSide && removalReason.shouldDestroy()) {
+			Containers.dropContents(this.level(), this, this);
+		}
+
+		super.remove(removalReason);
+	}
+
+	public void addSeaBatSaveData(CompoundTag tag, HolderLookup.Provider provider) {
+		if (this.getContainerLootTable() != null) {
+			tag.putString("LootTable", this.getContainerLootTable().location().toString());
+			if (this.getContainerLootTableSeed() != 0L) {
+				tag.putLong("LootTableSeed", this.getContainerLootTableSeed());
+			}
+		} else {
+			ContainerHelper.saveAllItems(tag, this.getItemStacks(), provider);
+		}
+	}
+
+	public void readSeaBatSaveData(CompoundTag tag, HolderLookup.Provider provider) {
+		this.clearItemStacks();
+		ResourceKey<LootTable> resourcekey = tag.read("LootTable", LootTable.KEY_CODEC).orElse(null);
+		this.setContainerLootTable(resourcekey);
+		this.setContainerLootTableSeed(tag.getLongOr("LootTableSeed", 0L));
+		if (resourcekey == null) {
+			ContainerHelper.loadAllItems(tag, this.getItemStacks(), provider);
+		}
+	}
+
+	@Override
+	public void addAdditionalSaveData(CompoundTag tag) {
+		super.addAdditionalSaveData(tag);
+		this.addSeaBatSaveData(tag, this.registryAccess());
+	}
+
+	@Override
+	public void readAdditionalSaveData(CompoundTag tag) {
+		super.readAdditionalSaveData(tag);
+		this.readSeaBatSaveData(tag, this.registryAccess());
+	}
+
+	@Override
+	public AbstractContainerMenu createMenu(int menuId, Inventory inventory, Player player) {
+		return null;
+	}
+
+	@Override
+	public ResourceKey<LootTable> getContainerLootTable() {
+		return this.lootTable;
+	}
+
+	@Override
+	public void setContainerLootTable(ResourceKey<LootTable> lootTable) {
+		this.lootTable = lootTable;
+	}
+
+	@Override
+	public long getContainerLootTableSeed() {
+		return 0;
+	}
+
+	@Override
+	public void setContainerLootTableSeed(long p_368553_) {
+
 	}
 }
