@@ -51,11 +51,13 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 
 	BlockPos anchorPoint;
 
+	public static final int ITEMS_TO_CARRY = 4;
+	public static final int ITEMS_TO_STEAL = 1;
 	public static final SoundEvent SOUND_SEABAT_DEATH = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.death"));
 	public static final SoundEvent SOUND_SEABAT_HURT = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.hurt"));
 	public static final SoundEvent SOUND_SEABAT_AMBIENT = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.ambient"));
 
-	private NonNullList<ItemStack> itemStacks = NonNullList.withSize(3, ItemStack.EMPTY);
+	private NonNullList<ItemStack> itemStacks = NonNullList.withSize(ITEMS_TO_CARRY, ItemStack.EMPTY);
 	private int timesChanged;
 	private ResourceKey<LootTable> lootTable;
 
@@ -259,35 +261,18 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				if (SeaBat.this.getBoundingBox().inflate(0.2F).intersects(livingentity.getBoundingBox())) {
 					SeaBat.this.doHurtTarget(getServerLevel(SeaBat.this.level()), livingentity);
 
+					// TODO: Comment this
 					if (livingentity instanceof Player player) {
-
-						Inventory inventory = player.getInventory();
-						ItemStack targetStack = new ItemStack(Items.COOKED_CHICKEN); // The item we want
-						int playerSlot = inventory.findSlotMatchingItem(targetStack); // Item slot to find from player inventory
-
-						if (playerSlot != -1) { // If slot exists
-							ItemStack matchingStack = inventory.getItem(playerSlot); // Get the matching ItemStack and shrink it by 1
-
-							if (matchingStack.getCount() > 0) {
-								int seaBatSlot = findSlotMatchingItem(matchingStack); // Item slot to find from SeaBat inventory matching stolen item
-								
-								if (seaBatSlot != -1) {
-									ItemStack stolenStack = getItem(seaBatSlot); // Get the existing stack
-									stolenStack.grow(1); // Grow the existing stack
-									SeaBat.this.setItem(seaBatSlot, stolenStack);
-									matchingStack.shrink(1);
-								} else {
-									ItemStack stolenStack = matchingStack.copy();
-									stolenStack.setCount(1); // Set initial count for the new stack
-									
-									if (!hasRemainingSpaceForItem(stolenStack, getItem(seaBatSlot))) {
-										if (getFreeSlot() != -1) {
-											SeaBat.this.setItem(getFreeSlot(), stolenStack); // Set the slot for the new stack
-											matchingStack.shrink(1);
-										}
-									}
-								}
-							}
+						int targetSlot = getFreeSlot();
+						Inventory playerInv = player.getInventory();
+						ItemStack targetStack = new ItemStack(Items.COOKED_CHICKEN);
+						int sourceSlot = playerInv.findSlotMatchingItem(targetStack);
+						if (sourceSlot != -1 && targetSlot != -1) {
+							ItemStack playerStack = playerInv.getItem(sourceSlot);
+							int toSteal = Math.min(ITEMS_TO_STEAL, playerStack.getCount());
+							targetStack.setCount(toSteal);
+							playerStack.shrink(toSteal);
+							SeaBat.this.setItem(targetSlot, targetStack);
 						}
 					}
 
@@ -398,7 +383,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		this.goalSelector.addGoal(3, new SeaBat.PhantomCircleAroundAnchorGoal());
 		this.targetSelector.addGoal(1, new SeaBat.PhantomAttackPlayerTargetGoal());
 	}
-	
+
 	private LazyOptional<?> itemHandler = LazyOptional.of(() -> new InvWrapper(this));
 
 	@Override
@@ -471,9 +456,9 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		}
 	}
 
-	public int findSlotMatchingItem(ItemStack stack) {
+	public int getFreeSlot() {
 		for (int i = 0; i < this.itemStacks.size(); i++) {
-			if (!this.itemStacks.get(i).isEmpty() && ItemStack.isSameItemSameComponents(stack, this.itemStacks.get(i))) {
+			if (this.itemStacks.get(i).isEmpty()) {
 				return i;
 			}
 		}
@@ -481,20 +466,6 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		return -1;
 	}
 
-	private boolean hasRemainingSpaceForItem(ItemStack targetStack, ItemStack inputStack) {
-        return !targetStack.isEmpty() && ItemStack.isSameItemSameComponents(targetStack, inputStack) && targetStack.isStackable() && targetStack.getCount() < this.getMaxStackSize(targetStack);
-    }
-	
-	public int getFreeSlot() {
-        for (int i = 0; i < this.itemStacks.size(); i++) {
-            if (this.itemStacks.get(i).isEmpty()) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-	
 	@Override
 	public void setChanged() {
 		this.timesChanged++;
