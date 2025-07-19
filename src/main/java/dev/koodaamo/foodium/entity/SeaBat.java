@@ -27,7 +27,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.FlyingMob;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.LookControl;
 import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -68,9 +67,9 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		this.xpReward = 5;
 		this.moveControl = new SeaBat.PhantomMoveControl(this);
 		this.lookControl = new SeaBat.PhantomLookControl(this);
-		this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(1);
+		// this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(1);
 	}
-	
+
 	public AttackPhase attackPhase;
 
 	static enum AttackPhase {
@@ -82,6 +81,14 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	public void tick() {
 		super.tick();
 		setupAnimationStates();
+	}
+
+	public boolean isFull() {
+		return getFreeSlot() != -1 ? false : true;
+	}
+
+	public int freeSlotsAmount() {
+		return getFreeSlot () != -1 ? ( (1 + ITEMS_TO_CARRY) - getFreeSlot() ) : 0;
 	}
 	
 	@Override
@@ -110,7 +117,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	}
 
 	class PhantomCircleAroundAnchorGoal extends SeaBat.PhantomMoveTargetGoal {
-		private float angle;
+		// private float angle;
 		private float distance;
 		private float height;
 		private float clockwise;
@@ -142,12 +149,14 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				}
 			}
 
-			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(450)) == 0) {
-				this.angle = SeaBat.this.random.nextFloat() * 2.0F * (float) Math.PI;
-				this.selectNext();
-			}
+			/*
+			 * if (SeaBat.this.random.nextInt(this.adjustedTickDelay(450)) == 0) {
+			 * this.angle = SeaBat.this.random.nextFloat() * 2.0F * (float) Math.PI;
+			 * this.selectNext(); }
+			 */
 
-			if (this.touchingTarget()) {
+			// Occasionally pick new target
+			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(550)) == 0 || this.touchingTarget()) {
 				this.selectNext();
 			}
 
@@ -167,8 +176,16 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				SeaBat.this.anchorPoint = SeaBat.this.blockPosition();
 			}
 
-			this.angle = this.angle + this.clockwise * 15.0F * (float) (Math.PI / 180.0);
-			SeaBat.this.moveTargetPoint = Vec3.atLowerCornerOf(SeaBat.this.anchorPoint).add(this.distance * Mth.cos(this.angle), -4.0F + this.height, this.distance * Mth.sin(this.angle));
+			// Pick a random XZ position around the anchor point within radius 8
+			double radius = 80.0;
+			double xOffset = (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
+			double zOffset = (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
+
+			// Use the current height offset (with a base Y value)
+			double y = SeaBat.this.anchorPoint.getY() + this.height;
+
+			// Create the new move target point
+			SeaBat.this.moveTargetPoint = new Vec3(SeaBat.this.anchorPoint.getX() + 0.5 + xOffset, y, SeaBat.this.anchorPoint.getZ() + 0.5 + zOffset);
 		}
 	}
 
@@ -183,8 +200,8 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	}
 
 	class PhantomMoveControl extends MoveControl {
-		private float speed = 0.5F;
-
+		private float maxSpeed = 0.5F;
+		private float currentSpeed = maxSpeed;
 		public PhantomMoveControl(final Mob p_33241_) {
 			super(p_33241_);
 		}
@@ -193,9 +210,10 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		public void tick() {
 			if (SeaBat.this.horizontalCollision) {
 				SeaBat.this.setYRot(SeaBat.this.getYRot() + 180.0F);
-				this.speed = 0.5F;
 			}
-
+			
+			this.currentSpeed = maxSpeed * (Math.max(0.25F, (SeaBat.this.freeSlotsAmount() / ITEMS_TO_STEAL)));
+			
 			double dx = SeaBat.this.moveTargetPoint.x - SeaBat.this.getX();
 			double dy = SeaBat.this.moveTargetPoint.y - SeaBat.this.getY();
 			double dz = SeaBat.this.moveTargetPoint.z - SeaBat.this.getZ();
@@ -213,17 +231,17 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				SeaBat.this.setYRot(Mth.approachDegrees(rightYawDeg, targetYawDeg, 15.0F) - 90.0F);
 				SeaBat.this.yBodyRot = SeaBat.this.getYRot();
 				if (Mth.degreesDifferenceAbs(currentYawDeg, SeaBat.this.getYRot()) < 3.0F) {
-					this.speed = Mth.approach(this.speed, 2.5F, 0.005F * (2.5F / this.speed));
+					this.currentSpeed = Mth.approach(this.currentSpeed, 2.5F, 0.005F * (2.5F / this.currentSpeed));
 				} else {
-					this.speed = Mth.approach(this.speed, 1F, 0.025F);
+					this.currentSpeed = Mth.approach(this.currentSpeed, 1.5F, 0.025F);
 				}
 
 				float newPitchDeg = (float) (-(Mth.atan2(-dy, horizontalDistance) * 180.0F / (float) Math.PI));
 				SeaBat.this.setXRot(newPitchDeg);
 				float newYawDeg = SeaBat.this.getYRot() + 90.0F;
-				double speedIncreaseX = this.speed * Mth.cos(newYawDeg * (float) (Math.PI / 180.0)) * Math.abs(dx / distance);
-				double speedIncreaseZ = this.speed * Mth.sin(newYawDeg * (float) (Math.PI / 180.0)) * Math.abs(dz / distance);
-				double speedIncreaseY = this.speed * Mth.sin(newPitchDeg * (float) (Math.PI / 180.0)) * Math.abs(dy / distance);
+				double speedIncreaseX = this.currentSpeed * Mth.cos(newYawDeg * (float) (Math.PI / 180.0)) * Math.abs(dx / distance);
+				double speedIncreaseZ = this.currentSpeed * Mth.sin(newYawDeg * (float) (Math.PI / 180.0)) * Math.abs(dz / distance);
+				double speedIncreaseY = this.currentSpeed * Mth.sin(newPitchDeg * (float) (Math.PI / 180.0)) * Math.abs(dy / distance);
 				Vec3 oldMovement = SeaBat.this.getDeltaMovement();
 				SeaBat.this.setDeltaMovement(oldMovement.add(new Vec3(speedIncreaseX, speedIncreaseY, speedIncreaseZ).subtract(oldMovement).scale(0.2)));
 			}
@@ -247,6 +265,8 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				return false;
 			} else if (!this.canUse()) {
 				return false;
+			} else if (SeaBat.this.isFull()) {
+				return false;
 			} else {
 				return true;
 			}
@@ -268,7 +288,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 			if (livingentity != null) {
 				SeaBat.this.moveTargetPoint = new Vec3(livingentity.getX(), livingentity.getY(0.5), livingentity.getZ());
 				if (SeaBat.this.getBoundingBox().inflate(0.2F).intersects(livingentity.getBoundingBox())) {
-					SeaBat.this.doHurtTarget(getServerLevel(SeaBat.this.level()), livingentity);
+					// SeaBat.this.doHurtTarget(getServerLevel(SeaBat.this.level()), livingentity);
 
 					// TODO: Comment this
 					if (livingentity instanceof Player player) {
@@ -316,7 +336,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				// serverlevel.getNearbyEntities(net.minecraft.world.entity.LivingEntity.class,
 				// this.attackTargeting, SeaBat.this, SeaBat.this.getBoundingBox().inflate(16.0,
 				// 64.0, 16.0));
-				List<Player> list = serverlevel.getNearbyPlayers(this.attackTargeting, SeaBat.this, SeaBat.this.getBoundingBox().inflate(16.0, 64.0, 16.0));
+				List<Player> list = serverlevel.getNearbyPlayers(this.attackTargeting, SeaBat.this, SeaBat.this.getBoundingBox().inflate(32.0, 64.0, 32.0));
 				if (!list.isEmpty()) {
 					list.sort(Comparator.<Entity, Double>comparing(Entity::getY).reversed());
 
@@ -345,7 +365,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		@Override
 		public boolean canUse() {
 			LivingEntity livingentity = SeaBat.this.getTarget();
-			return livingentity != null ? SeaBat.this.canAttack(getServerLevel(SeaBat.this.level()), livingentity, TargetingConditions.DEFAULT) : false;
+			return livingentity != null && !SeaBat.this.isFull() ? SeaBat.this.canAttack(getServerLevel(SeaBat.this.level()), livingentity, TargetingConditions.DEFAULT) : false;
 		}
 
 		@Override
@@ -358,7 +378,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		@Override
 		public void stop() {
 			if (SeaBat.this.anchorPoint != null) {
-				SeaBat.this.anchorPoint = SeaBat.this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, SeaBat.this.anchorPoint).above(10 + SeaBat.this.random.nextInt(20));
+				SeaBat.this.anchorPoint = SeaBat.this.level().getHeightmapPos(Heightmap.Types.WORLD_SURFACE, SeaBat.this.anchorPoint).above(10 + SeaBat.this.random.nextInt(20));
 			}
 		}
 
@@ -564,4 +584,5 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	private void setupAnimationStates() {
 		this.flyAnimationState.startIfStopped(this.tickCount);
 	}
+
 }
