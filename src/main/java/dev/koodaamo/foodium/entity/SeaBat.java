@@ -2,11 +2,13 @@ package dev.koodaamo.foodium.entity;
 
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
 import dev.koodaamo.foodium.FoodiumMod;
+import dev.koodaamo.foodium.registry.FoodiumTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -293,12 +295,18 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 					// TODO: Comment this
 					if (livingentity instanceof Player player) {
 						int targetSlot = getFreeSlot();
+						ItemStack playerStack = null;
 						Inventory playerInv = player.getInventory();
-						ItemStack targetStack = new ItemStack(Items.COOKED_CHICKEN);
-						int sourceSlot = playerInv.findSlotMatchingItem(targetStack);
-						if (sourceSlot != -1 && targetSlot != -1) {
-							ItemStack playerStack = playerInv.getItem(sourceSlot);
+						for (Iterator<ItemStack> stacks = playerInv.iterator(); stacks.hasNext();) {
+							ItemStack currentStack = stacks.next();
+							if (currentStack.is(FoodiumTags.SEABAT_STEALABLE)) {
+								playerStack = currentStack;
+								break;
+							}
+						}
+						if (playerStack != null && targetSlot != -1) {
 							int toSteal = Math.min(ITEMS_TO_STEAL, playerStack.getCount());
+							ItemStack targetStack = playerStack.copy();
 							targetStack.setCount(toSteal);
 							playerStack.shrink(toSteal);
 							SeaBat.this.setItem(targetSlot, targetStack);
