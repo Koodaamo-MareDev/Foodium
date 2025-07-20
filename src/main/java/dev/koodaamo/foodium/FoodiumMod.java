@@ -56,7 +56,7 @@ public class FoodiumMod {
 		FoodiumBlocks.register(modEventBus);
 
 		FoodiumBlockEntities.register(modEventBus);
-		
+
 		// Register an item property generator
 		ItemPropertyGenerator itemGen = new ItemPropertyGenerator(MODID);
 		itemGen.registerAll();
@@ -69,10 +69,10 @@ public class FoodiumMod {
 		CREATIVE_MODE_TABS.register(modEventBus);
 
 		FoodiumMenus.register(modEventBus);
-		
+
 		// Register mod entities
 		FoodiumEntities.register(modEventBus);
-		
+
 		// Register ourselves for server and other game events we are interested in
 		MinecraftForge.EVENT_BUS.register(this);
 

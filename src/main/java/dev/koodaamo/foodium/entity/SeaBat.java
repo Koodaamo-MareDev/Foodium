@@ -18,13 +18,14 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.Containers;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.AnimationState;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.FlyingMob;
 import net.minecraft.world.entity.LivingEntity;
@@ -38,10 +39,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.vehicle.ContainerEntity;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
@@ -89,10 +93,22 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		return getFreeSlot() != -1 ? false : true;
 	}
 
-	public int freeSlotsAmount() {
-		return getFreeSlot () != -1 ? ( (1 + ITEMS_TO_CARRY) - getFreeSlot() ) : 0;
+	public static boolean canSpawn(EntityType<SeaBat> type, ServerLevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
+		boolean aboveWater = level.getFluidState(pos.below()).isSource() && level.getBlockState(pos).isAir();
+		boolean validY = pos.getY() > 50 && pos.getY() < 120;
+
+		// Prevent spawns too close to other SeaBats
+		int clusterRadius = 100;
+		long seaBatCount = level.getEntitiesOfClass(SeaBat.class, new AABB(pos).inflate(clusterRadius)).size();
+		boolean notTooCrowded = seaBatCount < 2; // tweak as needed
+
+		return aboveWater && validY && notTooCrowded;
 	}
-	
+
+	public int freeSlotsAmount() {
+		return getFreeSlot() != -1 ? ((1 + ITEMS_TO_CARRY) - getFreeSlot()) : 0;
+	}
+
 	@Override
 	public SoundEvent getAmbientSound() {
 		return this.random.nextInt(4) != 0 ? null : SOUND_SEABAT_AMBIENT;
@@ -140,7 +156,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		@Override
 		public void tick() {
 			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(350)) == 0) {
-				this.height = -4.0F + SeaBat.this.random.nextFloat() * 9.0F;
+				this.height = 10.0F + SeaBat.this.random.nextFloat() * 10.0F; // 10 to 20 blocks above anchor
 			}
 
 			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(250)) == 0) {
@@ -151,14 +167,8 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				}
 			}
 
-			/*
-			 * if (SeaBat.this.random.nextInt(this.adjustedTickDelay(450)) == 0) {
-			 * this.angle = SeaBat.this.random.nextFloat() * 2.0F * (float) Math.PI;
-			 * this.selectNext(); }
-			 */
-
 			// Occasionally pick new target
-			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(550)) == 0 || this.touchingTarget()) {
+			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(650)) == 0 || this.touchingTarget()) {
 				this.selectNext();
 			}
 
@@ -178,16 +188,35 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				SeaBat.this.anchorPoint = SeaBat.this.blockPosition();
 			}
 
-			// Pick a random XZ position around the anchor point within radius 8
+			BlockPos targetPos;
+			int attempts = 10;
 			double radius = 80.0;
-			double xOffset = (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
-			double zOffset = (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
 
-			// Use the current height offset (with a base Y value)
-			double y = SeaBat.this.anchorPoint.getY() + this.height;
+			for (int i = 0; i < attempts; i++) {
+				double xOffset = (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
+				double zOffset = (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
 
-			// Create the new move target point
-			SeaBat.this.moveTargetPoint = new Vec3(SeaBat.this.anchorPoint.getX() + 0.5 + xOffset, y, SeaBat.this.anchorPoint.getZ() + 0.5 + zOffset);
+				double minFlyY = 70.0;
+				double maxFlyY = 90.0;
+				double y = minFlyY + SeaBat.this.random.nextDouble() * (maxFlyY - minFlyY);
+
+				targetPos = BlockPos.containing(SeaBat.this.anchorPoint.getX() + 0.5 + xOffset, y, SeaBat.this.anchorPoint.getZ() + 0.5 + zOffset);
+
+				// Check for water below the target (up to 60 blocks down)
+				for (int dy = 0; dy <= 60; dy++) {
+					BlockPos checkPos = targetPos.below(dy);
+					if (SeaBat.this.level().getFluidState(checkPos).is(Fluids.WATER) && SeaBat.this.level().getFluidState(checkPos).isSource()) {
+						SeaBat.this.moveTargetPoint = new Vec3(targetPos.getX() + 0.5, y, targetPos.getZ() + 0.5);
+						return;
+					}
+				}
+			}
+
+			// Fallback: no water found, just pick a random point
+			double fallbackX = SeaBat.this.anchorPoint.getX() + (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
+			double fallbackZ = SeaBat.this.anchorPoint.getZ() + (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
+			double fallbackY = 80.0;
+			SeaBat.this.moveTargetPoint = new Vec3(fallbackX, fallbackY, fallbackZ);
 		}
 	}
 
@@ -202,8 +231,9 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	}
 
 	class PhantomMoveControl extends MoveControl {
-		private float maxSpeed = 0.5F;
+		private float maxSpeed = 0.35F;
 		private float currentSpeed = maxSpeed;
+
 		public PhantomMoveControl(final Mob p_33241_) {
 			super(p_33241_);
 		}
@@ -213,9 +243,9 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 			if (SeaBat.this.horizontalCollision) {
 				SeaBat.this.setYRot(SeaBat.this.getYRot() + 180.0F);
 			}
-			
+
 			this.currentSpeed = maxSpeed * (Math.max(0.25F, (SeaBat.this.freeSlotsAmount() / ITEMS_TO_STEAL)));
-			
+
 			double dx = SeaBat.this.moveTargetPoint.x - SeaBat.this.getX();
 			double dy = SeaBat.this.moveTargetPoint.y - SeaBat.this.getY();
 			double dz = SeaBat.this.moveTargetPoint.z - SeaBat.this.getZ();
@@ -340,10 +370,6 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 			} else {
 				this.nextScanTick = reducedTickDelay(60);
 				ServerLevel serverlevel = getServerLevel(SeaBat.this.level());
-				// List<LivingEntity> list =
-				// serverlevel.getNearbyEntities(net.minecraft.world.entity.LivingEntity.class,
-				// this.attackTargeting, SeaBat.this, SeaBat.this.getBoundingBox().inflate(16.0,
-				// 64.0, 16.0));
 				List<Player> list = serverlevel.getNearbyPlayers(this.attackTargeting, SeaBat.this, SeaBat.this.getBoundingBox().inflate(32.0, 64.0, 32.0));
 				if (!list.isEmpty()) {
 					list.sort(Comparator.<Entity, Double>comparing(Entity::getY).reversed());
@@ -398,7 +424,6 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 					SeaBat.this.attackPhase = SeaBat.AttackPhase.SWOOP;
 					this.setAnchorAboveTarget();
 					this.nextSweepTick = this.adjustedTickDelay((8 + SeaBat.this.random.nextInt(4)) * 20);
-					SeaBat.this.playSound(SoundEvents.PHANTOM_SWOOP, 10.0F, 0.95F + SeaBat.this.random.nextFloat() * 0.1F);
 				}
 			}
 		}
