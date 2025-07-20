@@ -71,6 +71,7 @@ public interface StreamCodecHelper<T> extends StreamCodec<RegistryFriendlyByteBu
 	 * @param clazz Some SimplePacket class that contains a constructor that takes a single RegistryFriendlyByteBuf argument.
 	 * @param flow  An instance of SimpleFlow where the packet will be registered.
 	 */
+	@Deprecated
 	public static <T extends SimplePacket> void register(Class<T> clazz, SimpleFlow<RegistryFriendlyByteBuf, Object> flow) {
 		flow.add(clazz, StreamCodecHelper.create((buf) -> {
 			try {

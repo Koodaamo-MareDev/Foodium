@@ -21,6 +21,7 @@ build
 eclipse
 run
 run-data
+runMulti.bat
 
 # Files from Forge MDK
 forge*changelog.txt
