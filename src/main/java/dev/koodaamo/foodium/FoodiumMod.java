@@ -78,6 +78,9 @@ public class FoodiumMod {
 
 		// Register the item to a creative tab
 		modEventBus.addListener(this::addCreative);
+		
+		// Snow golem listener
+		MinecraftForge.EVENT_BUS.addListener(FoodiumEntities::onEntityJoin);
 
 	}
 

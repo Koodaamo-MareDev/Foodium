@@ -11,8 +11,12 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.SpawnPlacementTypes;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.SpawnPlacementRegisterEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -50,4 +54,19 @@ public class FoodiumEntities {
 	public static void registerSpawnPlacements(SpawnPlacementRegisterEvent event) {
 		event.register(CUSTOM_BAT.get(), SpawnPlacementTypes.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, SeaBat::canSpawn, SpawnPlacementRegisterEvent.Operation.REPLACE);
 	}
+	
+	//  Make golems attack SeaBats
+	public static void onEntityJoin(EntityJoinLevelEvent event) {
+        if (event.getEntity() instanceof SnowGolem snowGolem) {
+            snowGolem.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(
+                snowGolem, SeaBat.class, true
+            ));
+        }
+        
+        if (event.getEntity() instanceof IronGolem ironGolem) {
+        	ironGolem.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(
+        			ironGolem, SeaBat.class, true
+            ));
+        }
+    }
 }
