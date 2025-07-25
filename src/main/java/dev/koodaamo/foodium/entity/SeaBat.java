@@ -446,9 +446,9 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 
 		// Define steal chances for items tagged as stealable food and any item, as well
 		// as chance to steal nothing
-		int taggedWeight = 50;
-		int nothingWeight = 40;
-		int anyItemWeight = 10;
+		int taggedWeight = 70;
+		int nothingWeight = 25;
+		int anyItemWeight = 5;
 		int total = taggedWeight + nothingWeight + anyItemWeight;
 
 		int roll = random.nextInt(total); // 0 to total - 1
