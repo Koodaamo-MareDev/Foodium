@@ -1,5 +1,6 @@
 package dev.koodaamo.foodium.entity;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -72,7 +73,6 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		this.xpReward = 5;
 		this.moveControl = new SeaBat.PhantomMoveControl(this);
 		this.lookControl = new SeaBat.PhantomLookControl(this);
-		// this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(1);
 	}
 
 	public AttackPhase attackPhase;
@@ -94,14 +94,14 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 
 	public static boolean canSpawn(EntityType<SeaBat> type, ServerLevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
 		boolean aboveWater = level.getFluidState(pos.below()).isSource() && level.getBlockState(pos).isAir();
-		boolean validY = pos.getY() > 50 && pos.getY() < 120;
+		// boolean validY = pos.getY() > 50 && pos.getY() < 120;
 
 		// Prevent spawns too close to other SeaBats
 		int clusterRadius = 100;
 		long seaBatCount = level.getEntitiesOfClass(SeaBat.class, new AABB(pos).inflate(clusterRadius)).size();
 		boolean notTooCrowded = seaBatCount < 2; // tweak as needed
 
-		return aboveWater && validY && notTooCrowded;
+		return aboveWater && notTooCrowded;
 	}
 
 	public int freeSlotsAmount() {
@@ -187,35 +187,53 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				SeaBat.this.anchorPoint = SeaBat.this.blockPosition();
 			}
 
-			BlockPos targetPos;
 			int attempts = 10;
 			double radius = 80.0;
+			Level level = SeaBat.this.level();
+			BlockPos batPos = SeaBat.this.blockPosition();
+
+			int maxScanY = batPos.getY(); // Start slightly above current Y
+			int minScanY = batPos.getY() - 30;
 
 			for (int i = 0; i < attempts; i++) {
+				// Random X/Z offsets around anchor
 				double xOffset = (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
 				double zOffset = (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
 
-				double minFlyY = 70.0;
-				double maxFlyY = 90.0;
-				double y = minFlyY + SeaBat.this.random.nextDouble() * (maxFlyY - minFlyY);
+				int x = SeaBat.this.anchorPoint.getX() + (int) xOffset;
+				int z = SeaBat.this.anchorPoint.getZ() + (int) zOffset;
 
-				targetPos = BlockPos.containing(SeaBat.this.anchorPoint.getX() + 0.5 + xOffset, y, SeaBat.this.anchorPoint.getZ() + 0.5 + zOffset);
+				BlockPos.MutableBlockPos checkPos = new BlockPos.MutableBlockPos(x, maxScanY, z);
+				boolean foundSurface = false;
+				int surfaceY = -1;
 
-				// Check for water below the target (up to 60 blocks down)
-				for (int dy = 0; dy <= 60; dy++) {
-					BlockPos checkPos = targetPos.below(dy);
-					if (SeaBat.this.level().getFluidState(checkPos).is(Fluids.WATER) && SeaBat.this.level().getFluidState(checkPos).isSource()) {
-						SeaBat.this.moveTargetPoint = new Vec3(targetPos.getX() + 0.5, y, targetPos.getZ() + 0.5);
+				// Scan downward from current Y to find surface (water or ground)
+				for (int y = maxScanY; y > minScanY; y--) {
+					checkPos.setY(y);
+
+					if (level.getFluidState(checkPos).is(Fluids.WATER) && level.getFluidState(checkPos).isSource()) {
+						surfaceY = y;
+						foundSurface = true;
+						break;
+					}
+
+					if (level.getBlockState(checkPos).canOcclude() && !level.getBlockState(checkPos).isAir()) {
+						surfaceY = y;
+						foundSurface = true;
+						break;
+					}
+				}
+
+				if (foundSurface && surfaceY != -1) {
+					int above = surfaceY + 10 + SeaBat.this.random.nextInt(16); // 10–25 above surface
+
+					BlockPos targetPos = new BlockPos(x, above, z);
+					if (level.getBlockState(targetPos).isAir()) {
+						SeaBat.this.moveTargetPoint = new Vec3(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5);
 						return;
 					}
 				}
 			}
-
-			// Fallback: no water found, just pick a random point
-			double fallbackX = SeaBat.this.anchorPoint.getX() + (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
-			double fallbackZ = SeaBat.this.anchorPoint.getZ() + (SeaBat.this.random.nextDouble() * 2 - 1) * radius;
-			double fallbackY = 80.0;
-			SeaBat.this.moveTargetPoint = new Vec3(fallbackX, fallbackY, fallbackZ);
 		}
 	}
 
@@ -318,28 +336,10 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 			LivingEntity livingentity = SeaBat.this.getTarget();
 			if (livingentity != null) {
 				SeaBat.this.moveTargetPoint = new Vec3(livingentity.getX(), livingentity.getY(0.5), livingentity.getZ());
-				if (SeaBat.this.getBoundingBox().inflate(0.2F).intersects(livingentity.getBoundingBox())) {
-					// SeaBat.this.doHurtTarget(getServerLevel(SeaBat.this.level()), livingentity);
+				if (SeaBat.this.getBoundingBox().inflate(0.1F).intersects(livingentity.getBoundingBox())) {
 
-					// TODO: Comment this
 					if (livingentity instanceof Player player) {
-						int targetSlot = getFreeSlot();
-						ItemStack playerStack = null;
-						Inventory playerInv = player.getInventory();
-						for (Iterator<ItemStack> stacks = playerInv.iterator(); stacks.hasNext();) {
-							ItemStack currentStack = stacks.next();
-							if (currentStack.is(FoodiumTags.SEABAT_STEALABLE)) {
-								playerStack = currentStack;
-								break;
-							}
-						}
-						if (playerStack != null && targetSlot != -1) {
-							int toSteal = Math.min(ITEMS_TO_STEAL, playerStack.getCount());
-							ItemStack targetStack = playerStack.copy();
-							targetStack.setCount(toSteal);
-							playerStack.shrink(toSteal);
-							SeaBat.this.setItem(targetSlot, targetStack);
-						}
+						stealItem(player);
 					}
 
 					SeaBat.this.attackPhase = SeaBat.AttackPhase.CIRCLE;
@@ -434,6 +434,82 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 					SeaBat.this.anchorPoint = new BlockPos(SeaBat.this.anchorPoint.getX(), SeaBat.this.level().getSeaLevel() + 1, SeaBat.this.anchorPoint.getZ());
 				}
 			}
+		}
+	}
+
+	private void stealItem(Player player) {
+		// TODO cleanup or optimize
+
+		int targetSlot = getFreeSlot();
+		ItemStack playerStack = null;
+		Inventory playerInv = player.getInventory();
+
+		// Define steal chances for items tagged as stealable food and any item, as well
+		// as chance to steal nothing
+		int taggedWeight = 50;
+		int nothingWeight = 40;
+		int anyItemWeight = 10;
+		int total = taggedWeight + nothingWeight + anyItemWeight;
+
+		int roll = random.nextInt(total); // 0 to total - 1
+		
+		System.out.println("Roll result: " + roll);
+		
+		if (roll < taggedWeight) {
+			// Steal tagged item
+			System.out.println("Stealing food");
+			
+			// Find item in target inventory
+			for (Iterator<ItemStack> stacks = playerInv.iterator(); stacks.hasNext();) {
+				ItemStack currentStack = stacks.next();
+				if (currentStack.is(FoodiumTags.SEABAT_STEALABLE)) {
+					playerStack = currentStack;
+					break;
+				}
+			}
+
+			// If found, steal to own inventory
+			if (playerStack != null && targetSlot != -1) {
+				int toSteal = Math.min(ITEMS_TO_STEAL, playerStack.getCount());
+				ItemStack targetStack = playerStack.copy();
+				targetStack.setCount(toSteal);
+				playerStack.shrink(toSteal);
+				SeaBat.this.setItem(targetSlot, targetStack);
+
+			}
+		} else if (roll < taggedWeight + nothingWeight) {
+			// Steal nothing
+			
+			System.out.println("Stealing nothing");
+			
+		} else {
+			// Steal any item
+			
+			System.out.println("Stealing any item");
+			// check if playerinv is not empty. then get list of non-empty slots and pick a
+			// random one to steal from
+			List<Integer> nonEmptySlots = new ArrayList<>();
+
+			for (int i = 0; i < playerInv.getContainerSize(); i++) {
+				ItemStack stack = playerInv.getItem(i);
+				if (!stack.isEmpty()) {
+					nonEmptySlots.add(i);
+				}
+			}
+
+			if (!nonEmptySlots.isEmpty() && targetSlot != -1) {
+				int randomSlotIndex = random.nextInt(nonEmptySlots.size());
+				int chosenSlot = nonEmptySlots.get(randomSlotIndex);
+				ItemStack stackToSteal = playerInv.getItem(chosenSlot);
+
+				int toSteal = Math.min(ITEMS_TO_STEAL, stackToSteal.getCount());
+				ItemStack targetStack = stackToSteal.copy();
+				targetStack.setCount(toSteal);
+				stackToSteal.shrink(toSteal);
+
+				SeaBat.this.setItem(targetSlot, targetStack);
+			}
+
 		}
 	}
 
