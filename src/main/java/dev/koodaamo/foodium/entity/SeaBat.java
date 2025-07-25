@@ -182,11 +182,11 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 
 		@Override
 		public void tick() {
-			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(350)) == 0) {
+			if (SeaBat.this.random.nextInt(350) == 0) {
 				this.height = 10.0F + SeaBat.this.random.nextFloat() * 10.0F; // 10 to 20 blocks above anchor
 			}
 
-			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(250)) == 0) {
+			if (SeaBat.this.random.nextInt(250) == 0) {
 				this.distance++;
 				if (this.distance > 15.0F) {
 					this.distance = 5.0F;
@@ -194,8 +194,8 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				}
 			}
 
-			// Occasionally pick new target
-			if (SeaBat.this.random.nextInt(this.adjustedTickDelay(650)) == 0 || this.touchingTarget()) {
+			// Occasionally pick new target once in every 650 on average
+			if (SeaBat.this.random.nextInt(650) == 0 || this.touchingTarget()) {
 				this.selectNext();
 			}
 
@@ -253,7 +253,13 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				}
 
 				if (foundSurface && surfaceY != -1) {
-					int above = surfaceY + 10 + SeaBat.this.random.nextInt(16); // 10–25 above surface
+					int above;
+
+					if (isFull()) {
+						above = surfaceY + 1 + SeaBat.this.random.nextInt(9); // Max of 10 above surface
+					} else {
+						above = surfaceY + 10 + SeaBat.this.random.nextInt(16); // 10–25 above surface
+					}
 
 					BlockPos targetPos = new BlockPos(x, above, z);
 					if (level.getBlockState(targetPos).isAir()) {
@@ -500,7 +506,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				selectableSlots.add(i);
 			}
 		}
-		
+
 		if (roll < nothingWeight + taggedWeight) {
 			// Steal any item
 			System.out.println("Stealing food");
