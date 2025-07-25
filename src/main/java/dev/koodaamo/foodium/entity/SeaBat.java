@@ -37,6 +37,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Snowball;
 import net.minecraft.world.entity.vehicle.ContainerEntity;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
@@ -57,7 +58,9 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 
 	BlockPos anchorPoint;
 	public final AnimationState flyAnimationState = new AnimationState();
-
+	
+	private int snowballHitCooldown = 0;
+	
 	public static final int ITEMS_TO_CARRY = 4;
 	public static final int ITEMS_TO_STEAL = 1;
 	public static final SoundEvent SOUND_SEABAT_DEATH = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.death"));
@@ -86,6 +89,11 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	public void tick() {
 		super.tick();
 		setupAnimationStates();
+		
+		if (snowballHitCooldown > 0) {
+			snowballHitCooldown--;
+			System.out.println(snowballHitCooldown);
+		}
 	}
 
 	public boolean isFull() {
@@ -122,6 +130,17 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	protected SoundEvent getDeathSound() {
 		return SOUND_SEABAT_DEATH;
 	}
+	
+	@Override
+	public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+	    // Check if the damage source is a snowball
+	    if (source.getDirectEntity() instanceof Snowball) {
+	        this.snowballHitCooldown = 300;
+	    }
+
+	    // Call super to handle normal damage processing
+	    return super.hurtServer(level, source, amount);
+	}
 
 	abstract class PhantomMoveTargetGoal extends Goal {
 		public PhantomMoveTargetGoal() {
@@ -134,7 +153,6 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	}
 
 	class PhantomCircleAroundAnchorGoal extends SeaBat.PhantomMoveTargetGoal {
-		// private float angle;
 		private float distance;
 		private float height;
 		private float clockwise;
@@ -398,7 +416,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		@Override
 		public boolean canUse() {
 			LivingEntity livingentity = SeaBat.this.getTarget();
-			return livingentity != null && !SeaBat.this.isFull() ? SeaBat.this.canAttack(getServerLevel(SeaBat.this.level()), livingentity, TargetingConditions.DEFAULT) : false;
+			return livingentity != null && !SeaBat.this.isFull() ? SeaBat.this.canAttack(getServerLevel(SeaBat.this.level()), livingentity, TargetingConditions.DEFAULT) && snowballHitCooldown <= 0 : false;
 		}
 
 		@Override
@@ -452,13 +470,13 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		int total = taggedWeight + nothingWeight + anyItemWeight;
 
 		int roll = random.nextInt(total); // 0 to total - 1
-		
+
 		System.out.println("Roll result: " + roll);
-		
+
 		if (roll < taggedWeight) {
 			// Steal tagged item
 			System.out.println("Stealing food");
-			
+
 			// Find item in target inventory
 			for (Iterator<ItemStack> stacks = playerInv.iterator(); stacks.hasNext();) {
 				ItemStack currentStack = stacks.next();
@@ -479,12 +497,12 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 			}
 		} else if (roll < taggedWeight + nothingWeight) {
 			// Steal nothing
-			
+
 			System.out.println("Stealing nothing");
-			
+
 		} else {
 			// Steal any item
-			
+
 			System.out.println("Stealing any item");
 			// check if playerinv is not empty. then get list of non-empty slots and pick a
 			// random one to steal from
