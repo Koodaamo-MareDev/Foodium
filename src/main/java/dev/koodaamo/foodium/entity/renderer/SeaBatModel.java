@@ -15,7 +15,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 @OnlyIn(Dist.CLIENT)
 public class SeaBatModel extends EntityModel<SeaBatRenderState> {
 	private final ModelPart head;
-	private final ModelPart body;
+	final ModelPart body;
 	private final ModelPart rightWing;
 	private final ModelPart leftWing;
 	public SeaBatModel(ModelPart p_170427_) {

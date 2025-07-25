@@ -3,7 +3,6 @@ package dev.koodaamo.foodium.entity;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -58,9 +57,9 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 
 	BlockPos anchorPoint;
 	public final AnimationState flyAnimationState = new AnimationState();
-	
+
 	private int snowballHitCooldown = 0;
-	
+
 	public static final int ITEMS_TO_CARRY = 4;
 	public static final int ITEMS_TO_STEAL = 1;
 	public static final SoundEvent SOUND_SEABAT_DEATH = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(FoodiumMod.MODID, "entity.seabat.death"));
@@ -89,11 +88,22 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	public void tick() {
 		super.tick();
 		setupAnimationStates();
-		
+
 		if (snowballHitCooldown > 0) {
 			snowballHitCooldown--;
 			System.out.println(snowballHitCooldown);
 		}
+	}
+
+	@Override
+	public ItemStack getMainHandItem() {
+		int slotIdx = -1;
+
+		// Find last filled slot
+		while (!getItem(++slotIdx).isEmpty())
+			;
+
+		return this.getItem(slotIdx - 1);
 	}
 
 	public boolean isFull() {
@@ -130,16 +140,16 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	protected SoundEvent getDeathSound() {
 		return SOUND_SEABAT_DEATH;
 	}
-	
+
 	@Override
 	public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
-	    // Check if the damage source is a snowball
-	    if (source.getDirectEntity() instanceof Snowball) {
-	        this.snowballHitCooldown = 300;
-	    }
+		// Check if the damage source is a snowball
+		if (source.getDirectEntity() instanceof Snowball) {
+			this.snowballHitCooldown = 300;
+		}
 
-	    // Call super to handle normal damage processing
-	    return super.hurtServer(level, source, amount);
+		// Call super to handle normal damage processing
+		return super.hurtServer(level, source, amount);
 	}
 
 	abstract class PhantomMoveTargetGoal extends Goal {
@@ -459,76 +469,63 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		// TODO cleanup or optimize
 
 		int targetSlot = getFreeSlot();
-		ItemStack playerStack = null;
+		if (targetSlot < 0)
+			return;
 		Inventory playerInv = player.getInventory();
 
 		// Define steal chances for items tagged as stealable food and any item, as well
 		// as chance to steal nothing
-		int taggedWeight = 70;
 		int nothingWeight = 25;
+		int taggedWeight = 70;
 		int anyItemWeight = 5;
-		int total = taggedWeight + nothingWeight + anyItemWeight;
+		int total = nothingWeight + taggedWeight + anyItemWeight;
 
 		int roll = random.nextInt(total); // 0 to total - 1
 
 		System.out.println("Roll result: " + roll);
 
-		if (roll < taggedWeight) {
-			// Steal tagged item
-			System.out.println("Stealing food");
-
-			// Find item in target inventory
-			for (Iterator<ItemStack> stacks = playerInv.iterator(); stacks.hasNext();) {
-				ItemStack currentStack = stacks.next();
-				if (currentStack.is(FoodiumTags.SEABAT_STEALABLE)) {
-					playerStack = currentStack;
-					break;
-				}
-			}
-
-			// If found, steal to own inventory
-			if (playerStack != null && targetSlot != -1) {
-				int toSteal = Math.min(ITEMS_TO_STEAL, playerStack.getCount());
-				ItemStack targetStack = playerStack.copy();
-				targetStack.setCount(toSteal);
-				playerStack.shrink(toSteal);
-				SeaBat.this.setItem(targetSlot, targetStack);
-
-			}
-		} else if (roll < taggedWeight + nothingWeight) {
+		if (roll < nothingWeight) {
 			// Steal nothing
-
 			System.out.println("Stealing nothing");
+			return;
+		}
 
+		// check if playerinv is not empty. then get list of non-empty slots and pick a
+		// random one to steal from
+		List<Integer> selectableSlots = new ArrayList<>();
+
+		for (int i = 0; i < playerInv.getContainerSize(); i++) {
+			ItemStack stack = playerInv.getItem(i);
+			if (!stack.isEmpty()) {
+				selectableSlots.add(i);
+			}
+		}
+		
+		if (roll < nothingWeight + taggedWeight) {
+			// Steal any item
+			System.out.println("Stealing food");
+			selectableSlots.removeIf((i) -> {
+				return !playerInv.getItem(i).is(FoodiumTags.SEABAT_STEALABLE);
+			});
 		} else {
 			// Steal any item
-
 			System.out.println("Stealing any item");
-			// check if playerinv is not empty. then get list of non-empty slots and pick a
-			// random one to steal from
-			List<Integer> nonEmptySlots = new ArrayList<>();
-
-			for (int i = 0; i < playerInv.getContainerSize(); i++) {
-				ItemStack stack = playerInv.getItem(i);
-				if (!stack.isEmpty()) {
-					nonEmptySlots.add(i);
-				}
-			}
-
-			if (!nonEmptySlots.isEmpty() && targetSlot != -1) {
-				int randomSlotIndex = random.nextInt(nonEmptySlots.size());
-				int chosenSlot = nonEmptySlots.get(randomSlotIndex);
-				ItemStack stackToSteal = playerInv.getItem(chosenSlot);
-
-				int toSteal = Math.min(ITEMS_TO_STEAL, stackToSteal.getCount());
-				ItemStack targetStack = stackToSteal.copy();
-				targetStack.setCount(toSteal);
-				stackToSteal.shrink(toSteal);
-
-				SeaBat.this.setItem(targetSlot, targetStack);
-			}
-
 		}
+
+		if (!selectableSlots.isEmpty()) {
+			int randomSlotIndex = random.nextInt(selectableSlots.size());
+			int chosenSlot = selectableSlots.get(randomSlotIndex);
+			moveStealable(playerInv.getItem(chosenSlot), targetSlot);
+		}
+	}
+
+	private void moveStealable(ItemStack playerStack, int targetSlot) {
+		int toSteal = Math.min(ITEMS_TO_STEAL, playerStack.getCount());
+		ItemStack targetStack = playerStack.copy();
+		targetStack.setCount(toSteal);
+		playerStack.shrink(toSteal);
+
+		setItem(targetSlot, targetStack);
 	}
 
 	@Override

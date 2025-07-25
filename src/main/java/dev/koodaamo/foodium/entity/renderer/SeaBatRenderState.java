@@ -1,11 +1,11 @@
 package dev.koodaamo.foodium.entity.renderer;
 
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.client.renderer.entity.state.HoldingEntityRenderState;
 import net.minecraft.world.entity.AnimationState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
-public class SeaBatRenderState extends LivingEntityRenderState {
+public class SeaBatRenderState extends HoldingEntityRenderState {
 
 	@OnlyIn(Dist.CLIENT)
 	public boolean isResting;
