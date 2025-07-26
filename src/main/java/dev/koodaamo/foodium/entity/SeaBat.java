@@ -107,7 +107,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	}
 
 	public boolean isFull() {
-		return getFreeSlot() != -1 ? false : true;
+		return getFreeSlot() == -1;
 	}
 
 	public static boolean canSpawn(EntityType<SeaBat> type, ServerLevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
