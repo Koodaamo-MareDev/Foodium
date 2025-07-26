@@ -18,6 +18,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.ContainerHelper;
@@ -285,7 +286,7 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 	}
 
 	class PhantomMoveControl extends MoveControl {
-		private float maxSpeed = 0.35F;
+		private float maxSpeed = 0.325F;
 		private float currentSpeed = maxSpeed;
 
 		public PhantomMoveControl(final Mob p_33241_) {
@@ -314,7 +315,17 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 				float targetYawRad = (float) Mth.atan2(dz, dx);
 				float rightYawDeg = Mth.wrapDegrees(SeaBat.this.getYRot() + 90.0F);
 				float targetYawDeg = Mth.wrapDegrees(targetYawRad * (180.0F / (float) Math.PI));
-				SeaBat.this.setYRot(Mth.approachDegrees(rightYawDeg, targetYawDeg, 15.0F) - 90.0F);
+				
+				// Reduce turn speed as it gets closer (distance ∈ [0, ~32])
+				float baseTurnSpeed = 15.0F;
+				float minTurnSpeed = 2.0F; // How slow turning gets near target
+				float maxTurnDistance = 32.0F;
+
+				float distanceFactor = Mth.clamp((float) distance / maxTurnDistance, 0.0F, 1.0F);
+				float adjustedTurnSpeed = Mth.lerp(distanceFactor, minTurnSpeed, baseTurnSpeed);
+
+				SeaBat.this.setYRot(Mth.approachDegrees(rightYawDeg, targetYawDeg, adjustedTurnSpeed) - 90.0F);
+				
 				SeaBat.this.yBodyRot = SeaBat.this.getYRot();
 				if (Mth.degreesDifferenceAbs(currentYawDeg, SeaBat.this.getYRot()) < 3.0F) {
 					this.currentSpeed = Mth.approach(this.currentSpeed, 2.5F, 0.005F * (2.5F / this.currentSpeed));
@@ -371,9 +382,11 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		@Override
 		public void tick() {
 			LivingEntity livingentity = SeaBat.this.getTarget();
+			double distanceToTarget = SeaBat.this.distanceToSqr(livingentity);
+			
 			if (livingentity != null) {
 				SeaBat.this.moveTargetPoint = new Vec3(livingentity.getX(), livingentity.getY(0.5), livingentity.getZ());
-				if (SeaBat.this.getBoundingBox().inflate(0.1F).intersects(livingentity.getBoundingBox())) {
+				if (SeaBat.this.getBoundingBox().inflate(0.05F).intersects(livingentity.getBoundingBox())) {
 
 					if (livingentity instanceof Player player) {
 						stealItem(player);
@@ -383,9 +396,13 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 					if (!SeaBat.this.isSilent()) {
 						SeaBat.this.level().levelEvent(1039, SeaBat.this.blockPosition(), 0);
 					}
-				} else if (SeaBat.this.horizontalCollision || SeaBat.this.hurtTime > 0) {
+				} 
+				// If either hit or miss player, break off attack
+				else if (SeaBat.this.horizontalCollision || SeaBat.this.hurtTime > 0 || (distanceToTarget > 5.0D && (SeaBat.this.getY() <= livingentity.getY() + 1 && SeaBat.this.getY() >= livingentity.getY() - 1))) {
 					SeaBat.this.attackPhase = SeaBat.AttackPhase.CIRCLE;
 				}
+				
+				
 			}
 		}
 	}
@@ -460,6 +477,11 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 					SeaBat.this.attackPhase = SeaBat.AttackPhase.SWOOP;
 					this.setAnchorAboveTarget();
 					this.nextSweepTick = this.adjustedTickDelay((8 + SeaBat.this.random.nextInt(4)) * 20);
+
+					// Register own sound for this
+					SeaBat.this.playSound(SOUND_SEABAT_AMBIENT, 1.0F, 0.8F + SeaBat.this.random.nextFloat() * 0.1F);
+					SeaBat.this.playSound(SoundEvents.BREEZE_IDLE_GROUND, 3.0F, 0.8F + SeaBat.this.random.nextFloat() * 0.1F);
+					SeaBat.this.playSound(SoundEvents.BAT_TAKEOFF, 3.0F, 0.8F + SeaBat.this.random.nextFloat() * 0.1F);
 				}
 			}
 		}
