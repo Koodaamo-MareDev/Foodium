@@ -20,9 +20,11 @@ public class SeaBatHeldItemLayer extends RenderLayer<SeaBatRenderState, SeaBatMo
 		ItemStackRenderState itemstackrenderstate = state.heldItem;
 		if (!itemstackrenderstate.isEmpty()) {
 			pose.pushPose();
-			pose.translate(this.getParentModel().body.x / 16.0F, this.getParentModel().body.y / 16.0F, this.getParentModel().body.z / 16.0F);
+			pose.translate(getParentModel().body.x / 16, getParentModel().body.y / 16, getParentModel().body.z / 16);
+			pose.scale(0.75f, 0.75f, 0.75f);
 			pose.mulPose(Axis.YP.rotationDegrees(yaw));
-			pose.translate(0, -.3125, 0);
+			pose.mulPose(Axis.XP.rotationDegrees(getParentModel().body.xRot));
+			pose.translate(0, 0.375f, .3125f);
 			itemstackrenderstate.render(pose, source, light, OverlayTexture.NO_OVERLAY);
 			pose.popPose();
 		}

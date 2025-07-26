@@ -5,8 +5,8 @@ import dev.koodaamo.foodium.entity.SeaBat;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.entity.EntityRendererProvider.Context;
 import net.minecraft.client.renderer.entity.MobRenderer;
-import net.minecraft.client.renderer.entity.state.HoldingEntityRenderState;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemDisplayContext;
 
 public class SeaBatRenderer extends MobRenderer<SeaBat, SeaBatRenderState, SeaBatModel> {
@@ -27,10 +27,10 @@ public class SeaBatRenderer extends MobRenderer<SeaBat, SeaBatRenderState, SeaBa
 		return new SeaBatRenderState();
 	}
 
+	@Override
 	public void extractRenderState(SeaBat seaBat, SeaBatRenderState renderState, float p_368671_) {
 		super.extractRenderState(seaBat, renderState, p_368671_);
 		renderState.flyAnimationState.copyFrom(seaBat.flyAnimationState);
-		itemModelResolver.updateForLiving(renderState.heldItem, seaBat.getMainHandItem(), ItemDisplayContext.GROUND, seaBat);
-		HoldingEntityRenderState.extractHoldingEntityRenderState(seaBat, renderState, itemModelResolver);
+		itemModelResolver.updateForLiving(renderState.heldItem, seaBat.getItemBySlot(EquipmentSlot.MAINHAND), ItemDisplayContext.GROUND, seaBat);
 	}
 }

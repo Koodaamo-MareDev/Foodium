@@ -27,6 +27,7 @@ import net.minecraft.world.entity.AnimationState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.FlyingMob;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -95,15 +96,17 @@ public class SeaBat extends FlyingMob implements ContainerEntity {
 		}
 	}
 
+	public ItemStack getLastItem() {
+		int slot = getFreeSlot() - 1;
+		ItemStack item = getItem(slot < 0 ? itemStacks.size() - 1 : slot);
+		return item;
+	}
+
 	@Override
-	public ItemStack getMainHandItem() {
-		int slotIdx = -1;
-
-		// Find last filled slot
-		while (!getItem(++slotIdx).isEmpty())
-			;
-
-		return this.getItem(slotIdx - 1);
+	public ItemStack getItemBySlot(EquipmentSlot slot) {
+		if (!level().isClientSide && slot == EquipmentSlot.MAINHAND)
+			return getLastItem();
+		return super.getItemBySlot(slot);
 	}
 
 	public boolean isFull() {
